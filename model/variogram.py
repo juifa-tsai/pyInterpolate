@@ -186,10 +186,10 @@ class variogram:
         idxs.append(len(Y))
         batches = [[idxs[n], idxs[n+1]] for n in range(self.n_jobs)]
 
+        print("[INFO] Calculating variances for %d...."% len(Y))
         if self.tqdm: 
             batches = TQDM(batches)
 
-        print("[INFO] Calculating variances for %d...."% len(Y))
         ip = 0 # for pairwise
         for ib in batches:
             if self.tqdm: 
@@ -206,9 +206,6 @@ class variogram:
             v = cdist( Y[ib[0]:ib[1], None], 
                        Y[ip:, None], 
                        metric='sqeuclidean')/2
-
-            #print(d)
-            #print(v)
 
             ## Update pariwise index
             rr = ib[1]
@@ -245,8 +242,14 @@ class variogram:
             self.variances = self.variances[~NP.isnan(self.variances)]
 
         print('[INFO] Fitting variogram....')
+        self.update_fit()
+
+    def update_fit(self, model=None):
+        if model is not None:
+            self.update_model(model)
         ## Initialized parameters for fitting
         self.update_params()
+        ## Fit with least square
         self.results = least_squares( fun=self._cost, x0=self.params, bounds=self.params_bound, loss='soft_l1') 
         self.params = self.results.x
 
@@ -257,13 +260,15 @@ class variogram:
         '''
         return self.model(self.params, X)
 
-    def plot(self, to=None, transparent=True):
+    def plot(self, to=None, title='', transparent=True, show=True):
         """Displays variogram model with the actual binned data."""
         fig = PLT.figure()
         ax = fig.add_subplot(111)
         ax.plot(self.lags, self.variances, 'r*')
         ax.plot(self.lags, self.model(self.params, self.lags), 'k-')
-        PLT.show()
+        ax.title(title)
+        if show:
+            PLT.show()
         if to is not None:
             print('[INFO] Saving plot to %s'% to)
             PLT.savefig(to, transparent=transparent)
