@@ -266,7 +266,7 @@ class variogram:
         ax = fig.add_subplot(111)
         ax.plot(self.lags, self.variances, 'r*')
         ax.plot(self.lags, self.model(self.params, self.lags), 'k-')
-        ax.title(title)
+        PLT.title(title)
         if show:
             PLT.show()
         if to is not None:
