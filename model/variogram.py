@@ -4,86 +4,10 @@ import matplotlib.pyplot as PLT
 from scipy.spatial.distance import cdist
 from scipy.optimize import least_squares
 from tqdm import tqdm as TQDM
-
-__doc__ = """
-Function definitions for variogram models. In each function, m is a list of
-defining parameters and d is an array of the distance values at which to
-calculate the variogram model.
-
-References
-----------
-.. [1] P.K. Kitanidis, Introduction to Geostatistcs: Applications in
-    Hydrogeology, (Cambridge University Press, 1997) 272 p.
-"""
-
-## models
-def linear(m, d):
-    """Linear model, m is [slope, nugget]"""
-    slope = float(m[0])
-    nugget = float(m[1])
-    return slope * d + nugget
-
-
-def power(m, d):
-    """Power model, m is [scale, exponent, nugget]"""
-    scale = float(m[0])
-    exponent = float(m[1])
-    nugget = float(m[2])
-    return scale * d**exponent + nugget
-
-
-def gaussian(m, d):
-    """Gaussian model, m is [psill, range, nugget]"""
-    psill = float(m[0])
-    range_ = float(m[1])
-    nugget = float(m[2])
-    return psill * (1. - NP.exp(-d**2./(range_*4./7.)**2.)) + nugget
-
-
-def exponential(m, d):
-    """Exponential model, m is [psill, range, nugget]"""
-    psill = float(m[0])
-    range_ = float(m[1])
-    nugget = float(m[2])
-    return psill * (1. - NP.exp(-d/(range_))) + nugget
-
-
-def spherical(m, d):
-    """Spherical model, m is [psill, range, nugget]"""
-    psill = float(m[0])
-    range_ = float(m[1])
-    nugget = float(m[2])
-    return NP.piecewise(d, [d <= range_, d > range_],
-                        [lambda x: psill * ((3.*x)/(2.*range_) - (x**3.)/(2.*range_**3.)) + nugget, psill + nugget])
-
-
-def hole_effect(m, d):
-    """Hole Effect model, m is [psill, range, nugget]"""
-    psill = float(m[0])
-    range_ = float(m[1])
-    nugget = float(m[2])
-    return psill * (1. - (1.-d/(range_/3.)) * NP.exp(-d/(range_/3.))) + nugget
-
-
-def circular(m, d):
-    """Circular model, m is [psill, range, nugget]"""
-    psill = float(m[0])
-    range_ = float(m[1])
-    nugget = float(m[2])
-    return NP.piecewise(d, [d <= range_, d > range_],
-                        [lambda x: psill * (1 - 2/NP.pi/NP.cos(x/range_) + NP.sqrt(1-(x/range_)**2)) + nugget, psill + nugget])
-
-## Variogram class
-model_dict={ 'linear':linear, 
-             'power':power,
-             'gaussian':gaussian,
-             'exponential':exponential,
-             'spherical':spherical,
-             'hole_effect':hole_effect,
-             'circular':circular }
+from distribution import *
+from utility import *
 
 class variogram:
-    
     def __init__(self, lag_range=None, lag_max=NP.inf, distance_type='euclidean', model='linear', model_params=None, model_paramsbound=None, n_jobs=1, good_lowbin_fit=False, tqdm=False, debug=False):
         """
         distance_type : str, ‘braycurtis’, ‘canberra’, ‘chebyshev’, ‘cityblock’, ‘correlation’, ‘cosine’, ‘dice’, ‘euclidean’, ‘hamming’, ‘jaccard’, ‘jensenshannon’, ‘kulsinski’, ‘mahalanobis’, ‘matching’, ‘minkowski’, ‘rogerstanimoto’, ‘russellrao’, ‘seuclidean’, ‘sokalmichener’, ‘sokalsneath’, ‘sqeuclidean’, ‘wminkowski’, ‘yule’
@@ -120,14 +44,14 @@ class variogram:
                 self.model = model
         else:
             model = model.lower()
-            if model not in model_dict.keys():
+            if model not in distributions.keys():
                 print('[ERROR] variogram model %s not found.'% model)
-                print('        exist models: ', model_dict.keys())
+                print('        exist models: ', distributions.keys())
                 return
                 #sys.exit()
             else:
                 self.model_name = model
-                self.model = model_dict[model]
+                self.model = distributions[model]
 
     def update_n_jobs(self, n_jobs):
         self.n_jobs = int(n_jobs) if n_jobs >= 1 else 1
@@ -166,6 +90,8 @@ class variogram:
             return self.params
 
     def fit(self, X, Y):
+        X = NP.atleast_1d(X)
+        Y = NP.atleast_1d(Y)
         ## binning
         isBinned = False
         if self.lag_range is not None:
@@ -179,14 +105,8 @@ class variogram:
                 print('[INFO] variogram : %d bins, max bin %.2f'%(nbins, max(bins)))
 
         ## Set batch jobs
-        if len(Y) < self.n_jobs:
-            self.n_jobs = 1
-        size = int(len(Y)/self.n_jobs)
-        idxs = [ size*n for n in range(0,self.n_jobs)]
-        idxs.append(len(Y))
-        batches = [[idxs[n], idxs[n+1]] for n in range(self.n_jobs)]
-
         print("[INFO] Calculating variances for %d...."% len(Y))
+        batches = create_batchrange( len(Y), self.n_jobs )
         if self.tqdm: 
             batches = TQDM(batches)
 
@@ -196,25 +116,25 @@ class variogram:
                 batches.set_description(">> ")
            
             if len(X.shape) == 1:
-                d = cdist( X[ib[0]:ib[1], None], 
-                           X[ip:, None], 
+                d = cdist( X[ib[0]:ib[1], NP.newaxis], 
+                           X[ip:, NP.newaxis], 
                            metric=self.distance_type)
             else:
                 d = cdist( X[ib[0]:ib[1]], 
                            X[ip:], 
                            metric=self.distance_type)
-            v = cdist( Y[ib[0]:ib[1], None], 
-                       Y[ip:, None], 
+            v = cdist( Y[ib[0]:ib[1], NP.newaxis], 
+                       Y[ip:, NP.newaxis], 
                        metric='sqeuclidean')/2
 
             ## Update pariwise index
-            rr = ib[1]
+            ip = ib[1]
 
             ## selection
-            #print(v.shape, d.shape)
             v = v[(d > 0) & (d < self.lag_max)]
             d = d[(d > 0) & (d < self.lag_max)]
 
+            ## Fill by bin
             if isBinned:
                 for n in range(nbins-1):
                     binned = (d >= bins[n]) & (d<bins[n+1])
@@ -229,6 +149,7 @@ class variogram:
         if self.tqdm: 
             batches.close()
 
+        ## Selection for binned fit
         if isBinned:
             ## exclue empty bin
             self.lags = self.lags[ self.nlags > 0 ]
@@ -240,7 +161,8 @@ class variogram:
             ## exclude nan bin
             self.lags = self.lags[~NP.isnan(self.variances)]
             self.variances = self.variances[~NP.isnan(self.variances)]
-
+        
+        ## Fit with self.model
         print('[INFO] Fitting variogram....')
         self.update_fit()
 
@@ -255,7 +177,7 @@ class variogram:
 
     def predict(self, X):
         '''
-        input distance 
+        input X: distance 
         output varaince
         '''
         return self.model(self.params, X)
