@@ -16,7 +16,6 @@ def variogram_poly1(m, d):
     """polynomial 1-order model, m is [slope, nugget]
         y = [1] * x + [0]
     """
-
     slope = float(m[0])
     nugget = float(m[1])
     return slope * d + nugget
@@ -38,9 +37,6 @@ def variogram_gaussian(m, d):
                          - ( ----- )^2   
                              4*[2]      
         y = [1] * ( 1 - e^            ) + [0]
-                                        
-                                        
-                                        
     """
     psill = float(m[0])
     range_ = float(m[1])
@@ -54,8 +50,6 @@ def variogram_exponential(m, d):
                          - ( --- )  
                              [2]    
         y = [1] * ( 1 - e^        ) + [0]
-                                    
-                                    
     """
     psill = float(m[0])
     range_ = float(m[1])
@@ -98,8 +92,6 @@ def variogram_circular(m, d):
         x <= [2] : y = [1] * |  1 - ----------------- +   / 1 - (-----)^2    | + [0]
                               \       pi * cos(x/[2])    V        [2]       /
         x > [2]  : y = [1] + [0]
-   
-   
     """
     psill = float(m[0])
     range_ = float(m[1])
