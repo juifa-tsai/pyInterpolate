@@ -11,16 +11,21 @@ import numpy as NP
 #    Hydrogeology, (Cambridge University Press, 1997) 272 p.
 #"""
 
-## distriubtions
+## variogram distriubtions
 def variogram_poly1(m, d):
-    """polynomial 1-order model, m is [slope, nugget]"""
+    """polynomial 1-order model, m is [slope, nugget]
+        y = [1] * x + [0]
+    """
+
     slope = float(m[0])
     nugget = float(m[1])
     return slope * d + nugget
 
 
 def variogram_power(m, d):
-    """Power model, m is [scale, exponent, nugget]"""
+    """Power model, m is [scale, exponent, nugget]
+        y = [1] * x^[2] + [0]
+    """
     scale = float(m[0])
     exponent = float(m[1])
     nugget = float(m[2])
@@ -28,7 +33,15 @@ def variogram_power(m, d):
 
 
 def variogram_gaussian(m, d):
-    """Gaussian model, m is [psill, range, nugget]"""
+    """Gaussian model, m is [psill, range, nugget]
+                              7*x    
+                         - ( ----- )^2   
+                             4*[2]      
+        y = [1] * ( 1 - e^            ) + [0]
+                                        
+                                        
+                                        
+    """
     psill = float(m[0])
     range_ = float(m[1])
     nugget = float(m[2])
@@ -36,7 +49,14 @@ def variogram_gaussian(m, d):
 
 
 def variogram_exponential(m, d):
-    """Exponential model, m is [psill, range, nugget]"""
+    """Exponential model, m is [psill, range, nugget]
+                              x     
+                         - ( --- )  
+                             [2]    
+        y = [1] * ( 1 - e^        ) + [0]
+                                    
+                                    
+    """
     psill = float(m[0])
     range_ = float(m[1])
     nugget = float(m[2])
@@ -44,7 +64,12 @@ def variogram_exponential(m, d):
 
 
 def variogram_spherical(m, d):
-    """Spherical model, m is [psill, range, nugget]"""
+    """Spherical model, m is [psill, range, nugget]
+                                3 * x            x^3  
+        x <= [2] : y = [1] * ( ---------  -  ---------- ) + [0]
+                                2 * [2]       2 * [2]^3
+        x > [2]  : y = [1] + [0]
+    """
     psill = float(m[0])
     range_ = float(m[1])
     nugget = float(m[2])
@@ -53,7 +78,13 @@ def variogram_spherical(m, d):
 
 
 def variogram_hole_effect(m, d):
-    """Hole Effect model, m is [psill, range, nugget]"""
+    """Hole Effect model, m is [psill, range, nugget]
+                                          3 * x
+                                     - ( ------- )   
+                          3 * x            [2]
+        y = [1] * ( 1 - -------- * e^             ) + [0]
+                          [2]       
+    """
     psill = float(m[0])
     range_ = float(m[1])
     nugget = float(m[2])
@@ -61,7 +92,15 @@ def variogram_hole_effect(m, d):
 
 
 def variogram_circular(m, d):
-    """Circular model, m is [psill, range, nugget]"""
+    """Circular model, m is [psill, range, nugget]
+                                                            --------------
+                              /             2              /       x        \
+        x <= [2] : y = [1] * |  1 - ----------------- +   / 1 - (-----)^2    | + [0]
+                              \       pi * cos(x/[2])    V        [2]       /
+        x > [2]  : y = [1] + [0]
+   
+   
+    """
     psill = float(m[0])
     range_ = float(m[1])
     nugget = float(m[2])
