@@ -12,14 +12,14 @@ import numpy as NP
 #"""
 
 ## distriubtions
-def linear(m, d):
-    """Linear model, m is [slope, nugget]"""
+def variogram_poly1(m, d):
+    """polynomial 1-order model, m is [slope, nugget]"""
     slope = float(m[0])
     nugget = float(m[1])
     return slope * d + nugget
 
 
-def power(m, d):
+def variogram_power(m, d):
     """Power model, m is [scale, exponent, nugget]"""
     scale = float(m[0])
     exponent = float(m[1])
@@ -27,7 +27,7 @@ def power(m, d):
     return scale * d**exponent + nugget
 
 
-def gaussian(m, d):
+def variogram_gaussian(m, d):
     """Gaussian model, m is [psill, range, nugget]"""
     psill = float(m[0])
     range_ = float(m[1])
@@ -35,7 +35,7 @@ def gaussian(m, d):
     return psill * (1. - NP.exp(-d**2./(range_*4./7.)**2.)) + nugget
 
 
-def exponential(m, d):
+def variogram_exponential(m, d):
     """Exponential model, m is [psill, range, nugget]"""
     psill = float(m[0])
     range_ = float(m[1])
@@ -43,7 +43,7 @@ def exponential(m, d):
     return psill * (1. - NP.exp(-d/(range_))) + nugget
 
 
-def spherical(m, d):
+def variogram_spherical(m, d):
     """Spherical model, m is [psill, range, nugget]"""
     psill = float(m[0])
     range_ = float(m[1])
@@ -52,7 +52,7 @@ def spherical(m, d):
                         [lambda x: psill * ((3.*x)/(2.*range_) - (x**3.)/(2.*range_**3.)) + nugget, psill + nugget])
 
 
-def hole_effect(m, d):
+def variogram_hole_effect(m, d):
     """Hole Effect model, m is [psill, range, nugget]"""
     psill = float(m[0])
     range_ = float(m[1])
@@ -60,7 +60,7 @@ def hole_effect(m, d):
     return psill * (1. - (1.-d/(range_/3.)) * NP.exp(-d/(range_/3.))) + nugget
 
 
-def circular(m, d):
+def variogram_circular(m, d):
     """Circular model, m is [psill, range, nugget]"""
     psill = float(m[0])
     range_ = float(m[1])
@@ -68,11 +68,11 @@ def circular(m, d):
     return NP.piecewise(d, [d <= range_, d > range_],
                         [lambda x: psill * (1 - 2/NP.pi/NP.cos(x/range_) + NP.sqrt(1-(x/range_)**2)) + nugget, psill + nugget])
 
-distributions = { 'linear':linear, 
-                  'power':power,
-                  'gaussian':gaussian,
-                  'exponential':exponential,
-                  'spherical':spherical,
-                  'hole_effect':hole_effect,
-                  'circular':circular }
+distributions = { 'poly1':variogram_poly1, 
+                  'power':variogram_power,
+                  'gaussian':variogram_gaussian,
+                  'exponential':variogram_exponential,
+                  'spherical':variogram_spherical,
+                  'hole_effect':variogram_hole_effect,
+                  'circular':variogram_circular }
 

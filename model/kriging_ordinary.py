@@ -10,7 +10,7 @@ algorithms = ['kdtree', 'brutal']
 
 class kriging_ordinary(VAR):
 
-    def __init__(self, variogram=None, n_neighbor=5, radius=NP.inf, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='linear', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
+    def __init__(self, variogram=None, n_neighbor=5, radius=NP.inf, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
         self.variogram = variogram
         self.tqdm = tqdm
         self.debug = debug

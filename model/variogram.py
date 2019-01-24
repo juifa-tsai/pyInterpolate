@@ -8,7 +8,7 @@ from distribution import *
 from utility import *
 
 class variogram:
-    def __init__(self, lag_range=None, lag_max=NP.inf, distance_type='euclidean', model='linear', model_params=None, model_paramsbound=None, n_jobs=1, good_lowbin_fit=False, tqdm=False, debug=False):
+    def __init__(self, lag_range=None, lag_max=NP.inf, distance_type='euclidean', model='poly1', model_params=None, model_paramsbound=None, n_jobs=1, good_lowbin_fit=False, tqdm=False, debug=False):
         """
         distance_type : str, ‘braycurtis’, ‘canberra’, ‘chebyshev’, ‘cityblock’, ‘correlation’, ‘cosine’, ‘dice’, ‘euclidean’, ‘hamming’, ‘jaccard’, ‘jensenshannon’, ‘kulsinski’, ‘mahalanobis’, ‘matching’, ‘minkowski’, ‘rogerstanimoto’, ‘russellrao’, ‘seuclidean’, ‘sokalmichener’, ‘sokalsneath’, ‘sqeuclidean’, ‘wminkowski’, ‘yule’
         """
@@ -61,7 +61,7 @@ class variogram:
         self.params_bound = params_bound
         if self.params is None:
             if len(self.variances) > 0 and len(self.lags) > 0:
-                if self.model_name == 'linear':
+                if self.model_name == 'poly1':
                     self.params = [(NP.amax(self.variances)-NP.amin(self.variances))/(NP.amax(self.lags)-NP.amin(self.lags)), NP.amin(self.variances)]
                     self.params_bound = ([0., 0.], [NP.inf, NP.amax(self.variances)])
                 elif self.model_name == 'power':
