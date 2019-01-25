@@ -89,9 +89,9 @@ class variogram:
         else:
             return self.params
 
-    def fit(self, X, Y):
+    def fit(self, X, y):
         X = NP.atleast_1d(X)
-        Y = NP.atleast_1d(Y)
+        y = NP.atleast_1d(y)
         ## binning
         isBinned = False
         if self.lag_range is not None:
@@ -105,8 +105,8 @@ class variogram:
                 print('[INFO] variogram : %d bins, max bin %.2f'%(nbins, max(bins)))
 
         ## Set batch jobs
-        print("[INFO] Calculating variances for %d...."% len(Y))
-        batches = create_batchrange( len(Y), self.n_jobs )
+        print("[INFO] Calculating variances for %d...."% len(y))
+        batches = create_batchrange( len(y), self.n_jobs )
         if self.tqdm: 
             batches = TQDM(batches)
 
@@ -123,8 +123,8 @@ class variogram:
                 d = cdist( X[ib[0]:ib[1]], 
                            X[ip:], 
                            metric=self.distance_type)
-            v = cdist( Y[ib[0]:ib[1], NP.newaxis], 
-                       Y[ip:, NP.newaxis], 
+            v = cdist( y[ib[0]:ib[1], NP.newaxis], 
+                       y[ip:, NP.newaxis], 
                        metric='sqeuclidean')/2
 
             ## Update pariwise index

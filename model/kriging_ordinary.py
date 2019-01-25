@@ -10,13 +10,15 @@ algorithms = ['kdtree', 'brutal']
 
 class kriging_ordinary(VAR):
 
-    def __init__(self, variogram=None, n_neighbor=5, radius=NP.inf, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
-        self.variogram = variogram
-        self.tqdm = tqdm
-        self.debug = debug
-        self.good_lowbin_fit = variogram_good_lowbin_fit
+    def __init__(self, variogram=None, n_neighbor=5, radius=NP.inf, useNugget=False, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
         self.lags = NP.array([])
         self.variances = NP.array([])
+      
+        self.update_variogram(variogram)
+        self.update_good_lowbin_fit(good_lowbin_fit)
+        self.update_tqdm(tqdm)
+        self.update_debug(debug)
+        self.update_useNugget(useNugget)
         self.update_n_neighbor(n_neighbor)
         self.update_radius(radius)
         self.update_n_jobs(n_jobs)
@@ -26,6 +28,19 @@ class kriging_ordinary(VAR):
         self.update_lag_range(lag_range)
         self.update_lag_max(lag_max)
         self.update_distance_type(distance_type)
+
+
+    def update_good_lowbin_fit(self, good_lowbin_fit):
+        self.good_lowbin_fit = good_lowbin_fit
+
+    def update_tqdm(self, tqdm)
+        self.tqdm = tqdm
+
+    def update_debug(self, debug):
+        self.debug = debug
+
+    def update_useNugget(self, useNugget):
+        self.useNugget = useNugget
 
     def update_algorithm(self, algorithm):
         if algorithm.lower() in algorithms:
@@ -47,14 +62,8 @@ class kriging_ordinary(VAR):
 
     def update_variogram(self, variogram):
         self.variogram = variogram
-        
 
-    def fit(self, X, Y, to=None, transparent=True, show=False):
-        self.Y = NP.atleast_1d(Y)
-        if self.algorithm == 'kdtree':
-            self.X = cKDTree(NP.atleast_1d(X), copy_data=True)
-        else:
-            self.X = X
+    def fit(self, X, y, to=None, transparent=True, show=False):
         if self.variogram is None:
             print('[INFO] creating variogram....')
             self.variogram = VAR(lag_range=self.lag_range, 
@@ -67,7 +76,7 @@ class kriging_ordinary(VAR):
                                  good_lowbin_fit=self.good_lowbin_fit, 
                                  tqdm=self.tqdm,
                                  debug=self.debug)
-            self.variogram.fit(X,Y)
+            self.variogram.fit(X,y)
             if self.debug:
                  print('Sill %.2f, ragne %.2f, nuget %.2f'%( self.variogram.get_params()[0], 
                                                              self.variogram.get_params()[1], 
@@ -77,10 +86,18 @@ class kriging_ordinary(VAR):
                 print('[INFO] kriging_ordinary::fit(): do nothing due to variogram existed')
             else:
                 pass
+
+        self.y = NP.atleast_1d(y)
+        if self.algorithm == 'kdtree':
+            self.X = cKDTree(NP.atleast_1d(X), copy_data=True)
+        else:
+            self.X = X
+
         self.variogram.plot(to=to, transparent=transparent, show=show)
 
     def predict(self, X, n_neighbor=None, radius=None):
         ''' 
+           Loop for all data, the method take long time but save memory
            Obtain the linear argibra terms
             | V_ij 1 || w_i | = | V_k |
             |  1   0 ||  u  |   |  1  |
@@ -101,17 +118,20 @@ class kriging_ordinary(VAR):
 
         ## Find the neighbors 
         if self.algorithm == 'kdtree':
-            print('[INFO] Finding closest neighbors with kdtree....')
+            if self.debug:
+                print('[INFO] Finding closest neighbors with kdtree....')
             if self.distance_type == 'cityblock':
                 neighbor_dst, neighbor_idx = self.X.query(NP.atleast_1d(X), k=self.n_neighbor, p=1 )
             else:
                 neighbor_dst, neighbor_idx = self.X.query(NP.atleast_1d(X), k=self.n_neighbor, p=2 )
         else:
-            print('[INFO] Finding closest neighbors with brutal loops....')
+            if self.debug:
+                print('[INFO] Finding closest neighbors with brutal loops....')
             neighbor_dst, neighbor_idx = get_neighors_brutal( NP.atleast_1d(X), self.X, k=self.n_neighbor, distance=self.distance, n_jobs=self.n_jobs, tqdm=self.tqdm)
 
         ## Calculate prediction
-        print('[INFO] calculation prediction for %d data....'% len(X))
+        if self.debug:
+            print('[INFO] calculation prediction for %d data....'% len(X))
         if self.tqdm:
             batches = TQDM(range(0, len(X)))
         else:
@@ -143,17 +163,25 @@ class kriging_ordinary(VAR):
             a[:n, :n] = self.variogram.predict(D)
             a[:, n] = 1
             a[n, :] = 1
-            NP.fill_diagonal(a, 0)
+            a[n, n] = 0
 
             ## Fill vector b
             b[:-1, 0] = self.variogram.predict(nd)
-            if NP.any(NP.absolute(nd) == 0 ): b[0, 0] = 0. 
+
+            ## set self-varinace is zero if not using Nugget
+            if not self.useNugget:
+                ## modify a
+                NP.fill_diagonal(a, 0.)
+                ## modify b
+                zero_index = NP.where(NP.absolute(nd) == 0)
+                if len(zero_index) > 0:
+                    b[zero_index[0], 0] = 0.
 
             ## Get weights
             w = scipy.linalg.solve(a, b)
 
             ## Fill results
-            results[i] = w[:n, 0].dot(self.Y[ni])
+            results[i] = w[:n, 0].dot(self.y[ni])
             errors[i] = w[:, 0].dot(b[:, 0])
 
         if self.tqdm: 
