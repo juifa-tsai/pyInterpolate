@@ -1,8 +1,11 @@
+import sys, os
 import numpy as NP
 import pandas as PD
 import geopandas as GPD
 from shapely.geometry import Point
-from model.variogram import *
+
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model') )
+from variogram import *
 
 print('Loading data....')
 df = PD.read_csv('/Volumes/Data2/Workspace/GENM/results/projectionOfRoute/routeProjection_2016-01_3826.csv')

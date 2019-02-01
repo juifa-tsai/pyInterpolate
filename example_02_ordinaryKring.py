@@ -2,6 +2,7 @@ import sys, os
 import numpy as NP
 import pandas as PD
 import geopandas as GPD
+import pickle as PKL
 from shapely.geometry import Point
 
 sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model') )
@@ -12,7 +13,7 @@ print('Loading data....')
 df = PD.read_csv('/Volumes/Data2/Workspace/GENM/results/projectionOfRoute/routeProjection_2016-01_3826.csv')
 
 ## data
-test_size = 0.9
+test_size = 0.3
 ## variogram
 lagrange = 25 # meter
 lagmax = 2000 # meter
@@ -21,7 +22,7 @@ distance='euclidean'
 #distance='cityblock'
 model='exponential'
 ## kringning
-n_neighbor=3
+n_neighbor=5
 
 NP.random.seed(0)
 a = NP.arange(len(df))
@@ -38,9 +39,12 @@ ok = kriging_ordinary( distance_type=distance,
                        lag_max=lagmax,
                        variogram_model=model,
                        n_jobs=len(df_train)/batchsize,
+                       useNugget=True,
+                       #useNugget=False,
                        tqdm=True,
                        debug=True)
-ok.fit(df_train[['x','y']].values, df_train['passingby_user'].values, to='variogram.png')
+ok.fit(df_train[['x','y']].values, df_train['passingby_user'].values, to='variogram_'+distance+'_'+str(n_neighbor)+'.png')
+PKL.dump(ok, open('model_'+distance+'_'+str(n_neighbor)+'.pkl', 'wb'))
 
 df_train['prediction'] = ok.predict( df_train[['x','y']].values, n_neighbor=n_neighbor, radius=ok.variogram.get_params()[1]*3)[0]
 df_test['prediction']  = ok.predict( df_test[['x','y']].values, n_neighbor=n_neighbor, radius=ok.variogram.get_params()[1]*3)[0]
@@ -61,8 +65,8 @@ plt.plot([0,100], [0,100], 'g--')
 plt.ylim(0,100)
 plt.xlim(0,100)
 plt.subplot(222)
-df_train['kriging_residual'].hist()
-plt.title('Hist training res\nMedian absolute error: {:.1f}'.format(NP.median(NP.abs(df_train['kriging_residual']))))
+df_train['kriging_residual'].hist(bins=25)
+plt.title('Hist training res\nMedian absolute error: {:.2f}'.format(NP.median(NP.abs(df_train['kriging_residual']))))
 plt.subplot(223)
 plt.plot(df_test['prediction'], df_test['passingby_user'], '.')
 plt.plot([0,100], [0,100], 'g--')
@@ -72,7 +76,7 @@ plt.ylabel('True value')
 plt.ylim(0,100)
 plt.xlim(0,100)
 plt.subplot(224)
-df_test['kriging_residual'].hist()
-plt.title('Hist test res\nMedian absolute error: {:.1f}'.format(NP.median(NP.abs(df_test['kriging_residual']))))
+df_test['kriging_residual'].hist(bins=25)
+plt.title('Hist test res\nMedian absolute error: {:.2f}'.format(NP.median(NP.abs(df_test['kriging_residual']))))
 plt.tight_layout()
-plt.savefig('prediction.png')
+plt.savefig('prediction_'+distance+'_'+str(n_neighbor)+'.png')

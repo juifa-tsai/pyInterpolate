@@ -22,7 +22,7 @@ TW_XMAX=355210.
 TW_XMIN=145541.
 TW_YMAX=2800785.
 TW_YMIN=2421543.
-TW_CELLWIDTH=25
+TW_CELLWIDTH=50
 
 ## loading model 
 #OK = PKL.load(open('model_passingby_'+date+'_euclidean_10.pkl', 'rb'))
