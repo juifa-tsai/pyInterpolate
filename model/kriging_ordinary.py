@@ -15,7 +15,7 @@ class kriging_ordinary(VAR):
         self.variances = NP.array([])
       
         self.update_variogram(variogram)
-        self.update_good_lowbin_fit(good_lowbin_fit)
+        self.update_good_lowbin_fit(variogram_good_lowbin_fit)
         self.update_tqdm(tqdm)
         self.update_debug(debug)
         self.update_useNugget(useNugget)
@@ -33,7 +33,7 @@ class kriging_ordinary(VAR):
     def update_good_lowbin_fit(self, good_lowbin_fit):
         self.good_lowbin_fit = good_lowbin_fit
 
-    def update_tqdm(self, tqdm)
+    def update_tqdm(self, tqdm):
         self.tqdm = tqdm
 
     def update_debug(self, debug):
