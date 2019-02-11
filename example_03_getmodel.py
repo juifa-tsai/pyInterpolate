@@ -7,7 +7,7 @@ import rasterio as RAST
 from rasterio.transform import from_origin
 from shapely.geometry import Point
 
-sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model') )
+sys.path.insert(1, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'kriging') )
 from variogram import *
 from kriging_ordinary import *
 

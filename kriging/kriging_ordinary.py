@@ -1,5 +1,6 @@
 import numpy as NP
 import scipy.linalg
+import matplotlib.pyplot as PLT
 from tqdm import tqdm as TQDM
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
@@ -11,9 +12,11 @@ algorithms = ['kdtree', 'brutal']
 class kriging_ordinary(VAR):
 
     def __init__(self, variogram=None, n_neighbor=5, radius=NP.inf, useNugget=False, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
-        self.lags = NP.array([])
-        self.variances = NP.array([])
+        #self.lags = NP.array([])
+        #self.variances = NP.array([])
       
+        self.params = variogram_params 
+        self.params_bound = variogram_paramsbound
         self.update_variogram(variogram)
         self.update_good_lowbin_fit(variogram_good_lowbin_fit)
         self.update_tqdm(tqdm)
@@ -24,7 +27,6 @@ class kriging_ordinary(VAR):
         self.update_n_jobs(n_jobs)
         self.update_algorithm(algorithm)
         self.update_model(variogram_model)
-        self.update_params(variogram_params, variogram_paramsbound)
         self.update_lag_range(lag_range)
         self.update_lag_max(lag_max)
         self.update_distance_type(distance_type)
@@ -189,4 +191,16 @@ class kriging_ordinary(VAR):
 
         return results, errors
             
+    def plot(self, to=None, title='', transparent=True, show=True):
+        """Displays variogram model with the actual binned data."""
+        fig = PLT.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(self.variogram.lags, self.variogram.variances, 'r*')
+        ax.plot(self.variogram.lags, self.variogram.model(self.variogram.params, self.variogram.lags), 'k-')
+        PLT.title(title)
+        if show:
+            PLT.show()
+        if to is not None:
+            print('[INFO] Saving plot to %s'% to)
+            PLT.savefig(to, transparent=transparent)
 
