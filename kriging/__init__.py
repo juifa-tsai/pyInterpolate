@@ -1,4 +1,4 @@
 from distribution import *
 from variogram import *
-from distribution import *
+from kriging_ordinary import *
 from utility import *
