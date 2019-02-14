@@ -1,5 +1,5 @@
-# KrigingPy
-The Python package for spatial interpolation. The interpolation includes the ***Radius Base Function (RBF)*** and ***Kriging (Gaussian process)***.
+# PyInterpolation 
+The Python package for spatial interpolation. The interpolation includes the ***Radius Base Function (RBF)*** and ***Kriging (Gaussian process)*** .
 
 ## Installation
 ```bash
