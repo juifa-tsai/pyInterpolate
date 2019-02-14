@@ -1,5 +1,4 @@
 import numpy as NP
-from distribution import *
 
 class gaussian:
     """2D gaussian pars[6] = [x0, y0, amp, radius_x, radius_y, theta]
