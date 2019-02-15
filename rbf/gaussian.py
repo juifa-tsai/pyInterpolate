@@ -48,9 +48,9 @@ class gaussian:
         self._theta = NP.atleast_1d(theta)
 
     def predict(self, X):
-        size = len(X)
         x = NP.atleast_2d(X)[:,0][:, NP.newaxis]
         y = NP.atleast_2d(X)[:,1][:, NP.newaxis]
+        size = len(x)
 
         x0 = NP.ones((size,self._size0))*self._x0
         y0 = NP.ones((size,self._size0))*self._y0
