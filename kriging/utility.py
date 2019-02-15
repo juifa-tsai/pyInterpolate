@@ -21,11 +21,13 @@ def get_neighors_brutal(X1, X2, k, distance_type='euclidean', n_jobs=50, tqdm=Fa
     if tqdm:
         batches = TQDM(batches)
 
+    X1 = NP.atleast_2d(X1)
+    X2 = NP.atleast_2d(X2)
     distances = indexes = None
     for i, br in enumerate(batches):
         if tqdm:
             batches.set_description(">> ")
-        d = cdist(X1[br[0]:br[1], NP.newaxis], X2, distance_type)
+        d = cdist(X1[br[0]:br[1]], X2, distance_type)
         idx = NP.argsort(d)[:,:k]
         d = d[NP.arange(len(d))[:, NP.newaxis], idx]
         if i == 0:
