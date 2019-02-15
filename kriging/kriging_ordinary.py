@@ -4,8 +4,8 @@ import matplotlib.pyplot as PLT
 from tqdm import tqdm as TQDM
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
-from variogram import variogram as VAR
-from utility import get_neighors_brutal
+from .variogram import variogram as VAR
+from .utility import get_neighors_brutal
 
 algorithms = ['kdtree', 'brutal']
 
