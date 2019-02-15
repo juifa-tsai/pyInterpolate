@@ -124,7 +124,7 @@ class kriging_ordinary(VAR):
         '''
         X = NP.atleast_1d(X)
         if len(NP.shape(X)) == 1:
-            if self.n_features == len(X)
+            if self.n_features == len(X):
                 X = NP.atleast_2d(X)
             elif self.n_features != 1:
                 print('>> [ERROR] wrong input number of features %d, %d'%( 1, self.n_features))
