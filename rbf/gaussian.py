@@ -17,7 +17,7 @@ class gaussian:
         b = ---------- + ----------
              2*[3]^2      2*[4]^2
 
-            - sin(2*[5])   cos(2*[5])
+            - sin(2*[5])   sin(2*[5])
         c = ------------ + ----------
                4*[3]^2      4*[4]^2
         ref : https://en.wikipedia.org/wiki/Gaussian_function#Two-dimensional_Gaussian_function
