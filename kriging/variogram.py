@@ -186,8 +186,8 @@ class variogram:
         """Displays variogram model with the actual binned data."""
         fig = PLT.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.lags, self.variances, 'r*')
-        ax.plot(self.lags, self.model(self.params, self.lags), 'k-')
+        ax.plot(self.lags, self.variances, 'k*')
+        ax.plot(self.lags, self.model(self.params, self.lags), 'r-')
         PLT.title(title)
         if show:
             PLT.show()
