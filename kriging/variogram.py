@@ -92,6 +92,9 @@ class variogram:
     def fit(self, X, y):
         X = NP.atleast_1d(X)
         y = NP.atleast_1d(y)
+        if len(X) != len(y):
+            print(">> [ERROR] different size %di, %d"%(len(X), len(y)))
+            raise
         ## binning
         isBinned = False
         if self.lag_range is not None:

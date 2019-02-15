@@ -12,9 +12,8 @@ algorithms = ['kdtree', 'brutal']
 class kriging_ordinary(VAR):
 
     def __init__(self, variogram=None, n_neighbor=5, radius=NP.inf, useNugget=False, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
-        #self.lags = NP.array([])
-        #self.variances = NP.array([])
-      
+     
+        self.n_features = 0
         self.params = variogram_params 
         self.params_bound = variogram_paramsbound
         self.update_variogram(variogram)
@@ -66,6 +65,11 @@ class kriging_ordinary(VAR):
         self.variogram = variogram
 
     def fit(self, X, y, to=None, transparent=True, show=False):
+        X = NP.atleast_1d(X)
+        y = NP.atleast_1d(y)
+        if len(X) != len(y):
+            print(">> [ERROR] different size %di, %d"%(len(X), len(y)))
+            raise
         if self.variogram is None:
             print('>> [INFO] creating variogram....')
             self.variogram = VAR(lag_range=self.lag_range, 
@@ -89,15 +93,20 @@ class kriging_ordinary(VAR):
             else:
                 pass
 
-        self.y = NP.atleast_1d(y)
+        self.y = y
         if self.algorithm == 'kdtree':
-            self.X = cKDTree(NP.atleast_1d(X), copy_data=True)
+            self.X = cKDTree(X, copy_data=True)
         else:
             self.X = X
 
+        if len(NP.shape(X)) == 1:
+            self.n_features = 1
+        else:
+            self.n_features = NP.shape(X)[1]
+
         self.variogram.plot(to=to, transparent=transparent, show=show)
 
-    def predict(self, X, n_neighbor=None, radius=None):
+    def predict(self, X, n_neighbor=None, radius=None, get_error=False):
         ''' 
            Loop for all data, the method take long time but save memory
            Obtain the linear argibra terms
@@ -113,6 +122,17 @@ class kriging_ordinary(VAR):
             Y    : true value of neighbors
             y    : predicted value of interesting point
         '''
+        X = NP.atleast_1d(X)
+        if len(NP.shape(X)) == 1:
+            if self.n_features == len(X)
+                X = NP.atleast_2d(X)
+            elif self.n_features != 1:
+                print('>> [ERROR] wrong input number of features %d, %d'%( 1, self.n_features))
+                raise
+        elif NP.shape(X)[1] != self.n_features:
+            print('>> [ERROR] wrong input number of features %d, %d'%( NP.shape(X)[1], self.n_features))
+            raise
+
         if n_neighbor is not None:
             self.n_neighbor = n_neighbor
         if radius is not None:
@@ -123,13 +143,13 @@ class kriging_ordinary(VAR):
             if self.debug:
                 print('>> [INFO] Finding closest neighbors with kdtree....')
             if self.distance_type == 'cityblock':
-                neighbor_dst, neighbor_idx = self.X.query(NP.atleast_1d(X), k=self.n_neighbor, p=1 )
+                neighbor_dst, neighbor_idx = self.X.query(X, k=self.n_neighbor, p=1 )
             else:
-                neighbor_dst, neighbor_idx = self.X.query(NP.atleast_1d(X), k=self.n_neighbor, p=2 )
+                neighbor_dst, neighbor_idx = self.X.query(X, k=self.n_neighbor, p=2 )
         else:
             if self.debug:
                 print('>> [INFO] Finding closest neighbors with brutal loops....')
-            neighbor_dst, neighbor_idx = get_neighors_brutal( NP.atleast_1d(X), self.X, k=self.n_neighbor, distance=self.distance, n_jobs=self.n_jobs, tqdm=self.tqdm)
+            neighbor_dst, neighbor_idx = get_neighors_brutal( X, self.X, k=self.n_neighbor, distance=self.distance, n_jobs=self.n_jobs, tqdm=self.tqdm)
 
         ## Calculate prediction
         if self.debug:
@@ -189,7 +209,11 @@ class kriging_ordinary(VAR):
         if self.tqdm: 
             batches.close()
 
-        return results, errors
+        if get_error:
+            return results, errors
+        else:
+            return results
+
             
     def plot(self, to=None, title='', transparent=True, show=True):
         """Displays variogram model with the actual binned data."""
