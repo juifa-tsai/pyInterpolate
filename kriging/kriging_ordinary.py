@@ -48,8 +48,8 @@ class kriging_ordinary(VAR):
         if algorithm.lower() in algorithms:
             self.algorithm = algorithm
         else:
-            print('[WARNING] %d not found in algorithm list'% algorithm)
-            print('          list: ', algorithms)
+            print('>> [WARNING] %d not found in algorithm list'% algorithm)
+            print('             list: ', algorithms)
             self.algorithm = 'kdtree'
 
     def update_n_neighbor(self, n_neighbor):
@@ -67,7 +67,7 @@ class kriging_ordinary(VAR):
 
     def fit(self, X, y, to=None, transparent=True, show=False):
         if self.variogram is None:
-            print('[INFO] creating variogram....')
+            print('>> [INFO] creating variogram....')
             self.variogram = VAR(lag_range=self.lag_range, 
                                  lag_max=self.lag_max, 
                                  distance_type=self.distance_type, 
@@ -80,12 +80,12 @@ class kriging_ordinary(VAR):
                                  debug=self.debug)
             self.variogram.fit(X,y)
             if self.debug:
-                 print('Sill %.2f, ragne %.2f, nuget %.2f'%( self.variogram.get_params()[0], 
-                                                             self.variogram.get_params()[1], 
-                                                             self.variogram.get_params()[2]))
+                print('>> [DONE] Sill %.2f, ragne %.2f, nuget %.2f'%( self.variogram.get_params()[0], 
+                                                                      self.variogram.get_params()[1], 
+                                                                      self.variogram.get_params()[2]))
         else:
             if self.debug:
-                print('[INFO] kriging_ordinary::fit(): do nothing due to variogram existed')
+                print('>> [INFO] kriging_ordinary::fit(): do nothing due to variogram existed')
             else:
                 pass
 
@@ -121,19 +121,19 @@ class kriging_ordinary(VAR):
         ## Find the neighbors 
         if self.algorithm == 'kdtree':
             if self.debug:
-                print('[INFO] Finding closest neighbors with kdtree....')
+                print('>> [INFO] Finding closest neighbors with kdtree....')
             if self.distance_type == 'cityblock':
                 neighbor_dst, neighbor_idx = self.X.query(NP.atleast_1d(X), k=self.n_neighbor, p=1 )
             else:
                 neighbor_dst, neighbor_idx = self.X.query(NP.atleast_1d(X), k=self.n_neighbor, p=2 )
         else:
             if self.debug:
-                print('[INFO] Finding closest neighbors with brutal loops....')
+                print('>> [INFO] Finding closest neighbors with brutal loops....')
             neighbor_dst, neighbor_idx = get_neighors_brutal( NP.atleast_1d(X), self.X, k=self.n_neighbor, distance=self.distance, n_jobs=self.n_jobs, tqdm=self.tqdm)
 
         ## Calculate prediction
         if self.debug:
-            print('[INFO] calculation prediction for %d data....'% len(X))
+            print('>> [INFO] calculation prediction for %d data....'% len(X))
         if self.tqdm:
             batches = TQDM(range(0, len(X)))
         else:
@@ -201,6 +201,6 @@ class kriging_ordinary(VAR):
         if show:
             PLT.show()
         if to is not None:
-            print('[INFO] Saving plot to %s'% to)
+            print('>> [INFO] Saving plot to %s'% to)
             PLT.savefig(to, transparent=transparent)
 

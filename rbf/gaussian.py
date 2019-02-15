@@ -31,19 +31,19 @@ class gaussian:
 
     def update_radiusX(self, radius_x):
         if self._size0 > 0 and self._size0 != len(NP.atleast_1d(radius_x)):
-            print('[ERROR] update_radiusX: input different size with fitting data')
+            print('>> [ERROR] update_radiusX: input different size with fitting data')
             return
         self._radius_x = NP.atleast_1d(radius_x)
 
     def update_radiusY(self, radius_y):
         if self._size0 > 0 and self._size0 != len(NP.atleast_1d(radius_y)):
-            print('[ERROR] update_radiusY: input different size with fitting data')
+            print('>> [ERROR] update_radiusY: input different size with fitting data')
             return
         self._radius_y = NP.atleast_1d(radius_y)
 
     def update_theta(self, theta):
         if self._size0 > 0 and self._size0 != len(NP.atleast_1d(theta)):
-            print('[ERROR] update_theta: input different size with fitting data')
+            print('>> [ERROR] update_theta: input different size with fitting data')
             return
         self._theta = NP.atleast_1d(theta)
 
@@ -68,7 +68,7 @@ class gaussian:
         self._y0 = NP.atleast_2d(X)[:,1]
         self._z0 = NP.atleast_1d(y)
         if len(self._x0) != len(self._z0):
-            print('[ERROR] fit: input different size')
+            print('>> [ERROR] fit: input different size')
             return
         else:
             self._size0 = len(self._z0)

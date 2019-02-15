@@ -72,14 +72,14 @@ class variogram:
                     self.params_bound = ([0., 0., 0.], [10.*NP.amax(self.variances), NP.amax(self.lags), NP.amax(self.variances)])
             else:
                 if self.debug: 
-                    print('[INFO] called variogram.update_params: variogram.params and variogram.params_bound are set to None.')
+                    print('>> [INFO] called variogram.update_params: variogram.params and variogram.params_bound are set to None.')
 
         elif self.params_bound is None:
             self.params_bound = ([-NP.inf for _ in range(len(self.params))],
                                  [ NP.inf for _ in range(len(self.params))])
         else:
             if self.debug: 
-                print('[INFO] initialized variogram.params and variogram.params_bound')
+                print('>> [INFO] initialized variogram.params and variogram.params_bound')
                 print(self.params)
                 print(self.params_bound)
 
@@ -102,7 +102,7 @@ class variogram:
             self.variances = NP.zeros(nbins)
             self.nlags = NP.zeros(nbins)
             if self.debug:
-                print('[INFO] variogram : %d bins, max bin %.2f'%(nbins, max(bins)))
+                print('>> [INFO] variogram : %d bins, max bin %.2f'%(nbins, max(bins)))
 
         ## Set batch jobs
         print("[INFO] Calculating variances for %d...."% len(y))
@@ -163,7 +163,7 @@ class variogram:
             self.variances = self.variances[~NP.isnan(self.variances)]
         
         ## Fit with self.model
-        print('[INFO] Fitting variogram....')
+        print('>> [INFO] Fitting variogram....')
         self.update_fit()
 
     def update_fit(self, model=None):
@@ -192,7 +192,7 @@ class variogram:
         if show:
             PLT.show()
         if to is not None:
-            print('[INFO] Saving plot to %s'% to)
+            print('>> [INFO] Saving plot to %s'% to)
             PLT.savefig(to, transparent=transparent)
 
     def _cost(self, params):
