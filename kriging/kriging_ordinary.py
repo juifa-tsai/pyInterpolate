@@ -183,6 +183,16 @@ class kriging_ordinary(VAR):
 
         self._variogram.plot(to=to, transparent=transparent, show=show)
 
+    def variogram(self):
+        '''
+        [DESCRIPTION]
+            call the variogram model.
+        [INPUT]
+            Null
+        [OUTPUT]
+            callable, variogram model
+        '''
+        return self._variogram
 
     def predict(self, X, n_neighbor=5, radius=NP.inf, get_error=False):
         '''
