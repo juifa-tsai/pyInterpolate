@@ -1,0 +1,8 @@
+*.swp
+*pycache*
+*.pyc
+*.sql
+*.csv
+*.plk
+*.ipynb_checkpoints
+
