@@ -45,8 +45,8 @@ class variogram:
         else:
             model = model.lower()
             if model not in distributions.keys():
-                print('[ERROR] variogram model %s not found.'% model)
-                print('        exist models: ', distributions.keys())
+                print('>> [ERROR] variogram model %s not found.'% model)
+                print('           exist models: ', distributions.keys())
                 return
                 #sys.exit()
             else:
@@ -108,7 +108,7 @@ class variogram:
                 print('>> [INFO] variogram : %d bins, max bin %.2f'%(nbins, max(bins)))
 
         ## Set batch jobs
-        print("[INFO] Calculating variances for %d...."% len(y))
+        print(">> [INFO] Calculating variances for %d...."% len(y))
         batches = create_batchrange( len(y), self.n_jobs )
         if self.tqdm: 
             batches = TQDM(batches)
