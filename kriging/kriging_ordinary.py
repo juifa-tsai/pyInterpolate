@@ -11,7 +11,7 @@ algorithms = ['kdtree', 'brutal']
 
 class kriging_ordinary(VAR):
 
-    def __init__(self, variogram=None, n_neighbor=5, radius=NP.inf, useNugget=False, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
+    def __init__(self, variogram=None, useNugget=False, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
      
         self.n_features = 0
         self.params = variogram_params 
@@ -21,8 +21,6 @@ class kriging_ordinary(VAR):
         self.update_tqdm(tqdm)
         self.update_debug(debug)
         self.update_useNugget(useNugget)
-        self.update_n_neighbor(n_neighbor)
-        self.update_radius(radius)
         self.update_n_jobs(n_jobs)
         self.update_algorithm(algorithm)
         self.update_model(variogram_model)
@@ -50,16 +48,6 @@ class kriging_ordinary(VAR):
             print('>> [WARNING] %d not found in algorithm list'% algorithm)
             print('             list: ', algorithms)
             self.algorithm = 'kdtree'
-
-    def update_n_neighbor(self, n_neighbor):
-        self.n_neighbor = n_neighbor
-
-    def update_radius(self, radius):
-        if radius <= 0:
-            print('[ERROR] radius must be > 0')
-            self.radius = NP.inf
-        else:
-            self.radius = radius
 
     def update_variogram(self, variogram):
         self.variogram = variogram
@@ -106,7 +94,7 @@ class kriging_ordinary(VAR):
 
         self.variogram.plot(to=to, transparent=transparent, show=show)
 
-    def predict(self, X, n_neighbor=None, radius=None, get_error=False):
+    def predict(self, X, n_neighbor=5, radius=None, get_error=False):
         ''' 
            Loop for all data, the method take long time but save memory
            Obtain the linear argibra terms
@@ -128,28 +116,31 @@ class kriging_ordinary(VAR):
                 X = NP.atleast_2d(X)
             elif self.n_features != 1:
                 print('>> [ERROR] wrong input number of features %d, %d'%( 1, self.n_features))
-                raise
+                return
         elif NP.shape(X)[1] != self.n_features:
             print('>> [ERROR] wrong input number of features %d, %d'%( NP.shape(X)[1], self.n_features))
-            raise
+            return
 
-        if n_neighbor is not None:
-            self.n_neighbor = n_neighbor
-        if radius is not None:
-            self.radius = radius
+        if n_neighbor <= 0:
+            print(">> [ERROR] number of neighbor must be > 0")
+            return
+
+        if radius <= 0:
+            print('>> [ERROR] radius must be > 0')
+            return
 
         ## Find the neighbors 
         if self.algorithm == 'kdtree':
             if self.debug:
                 print('>> [INFO] Finding closest neighbors with kdtree....')
             if self.distance_type == 'cityblock':
-                neighbor_dst, neighbor_idx = self.X.query(X, k=self.n_neighbor, p=1 )
+                neighbor_dst, neighbor_idx = self.X.query(X, k=n_neighbor, p=1 )
             else:
-                neighbor_dst, neighbor_idx = self.X.query(X, k=self.n_neighbor, p=2 )
+                neighbor_dst, neighbor_idx = self.X.query(X, k=n_neighbor, p=2 )
         else:
             if self.debug:
                 print('>> [INFO] Finding closest neighbors with brutal loops....')
-            neighbor_dst, neighbor_idx = get_neighors_brutal( X, self.X, k=self.n_neighbor, distance=self.distance, n_jobs=self.n_jobs, tqdm=self.tqdm)
+            neighbor_dst, neighbor_idx = get_neighors_brutal( X, self.X, k=n_neighbor, distance=self.distance, n_jobs=self.n_jobs, tqdm=self.tqdm)
 
         ## Calculate prediction
         if self.debug:
@@ -165,8 +156,8 @@ class kriging_ordinary(VAR):
             if self.tqdm:
                 batches.set_description(">> ")
 
-            ni = ni[nd < self.radius]
-            nd = nd[nd < self.radius]
+            ni = ni[nd < radius]
+            nd = nd[nd < radius]
 
             if len(ni) == 0: 
                 continue 
