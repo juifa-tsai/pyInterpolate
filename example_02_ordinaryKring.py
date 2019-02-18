@@ -45,8 +45,8 @@ ok = kriging_ordinary( distance_type=distance,
 ok.fit(df_train[['x','y']].values, df_train['passingby_user'].values, to='variogram_'+distance+'_'+str(n_neighbor)+'.png')
 PKL.dump(ok, open('model_'+distance+'_'+str(n_neighbor)+'.pkl', 'wb'))
 
-df_train['prediction'] = ok.predict( df_train[['x','y']].values, n_neighbor=n_neighbor, radius=ok.variogram.get_params()[1]*3)[0]
-df_test['prediction']  = ok.predict( df_test[['x','y']].values, n_neighbor=n_neighbor, radius=ok.variogram.get_params()[1]*3)[0]
+df_train['prediction'] = ok.predict( df_train[['x','y']].values, n_neighbor=n_neighbor, radius=ok.variogram().get_params()[1]*3)[0]
+df_test['prediction']  = ok.predict( df_test[['x','y']].values, n_neighbor=n_neighbor, radius=ok.variogram().get_params()[1]*3)[0]
 df_train['kriging_residual'] = df_train['passingby_user'] - df_train['prediction']
 df_test['kriging_residual'] = df_test['passingby_user'] - df_test['prediction']
 
