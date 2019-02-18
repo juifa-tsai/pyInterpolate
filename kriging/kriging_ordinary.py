@@ -28,53 +28,142 @@ class kriging_ordinary(VAR):
         self.update_lag_max(lag_max)
         self.update_distance_type(distance_type)
 
-
     def update_good_lowbin_fit(self, good_lowbin_fit):
+        '''
+        [DESCRIPTION]
+            Update good_lowbin_fit option to turn on/off to improve the fitting in lowed bins.
+            The model has to be re-fit by calling update_fit() after updated variogram.
+        [INPUT]
+            good_lowbin_fit : bool 
+        [OUTPUT]
+            Null
+        '''
         self.good_lowbin_fit = good_lowbin_fit
 
     def update_tqdm(self, tqdm):
+        '''
+        [DESCRIPTION]
+            Turn on/off to runing process bar.
+        [INPUT]
+            tqdm : bool 
+        [OUTPUT]
+            Null
+        '''
         self.tqdm = tqdm
 
     def update_debug(self, debug):
+        '''
+        [DESCRIPTION]
+            Turn on/off to debug.
+        [INPUT]
+            debug : bool 
+        [OUTPUT]
+            Null
+        '''
+
         self.debug = debug
 
     def update_useNugget(self, useNugget):
-        self.useNugget = useNugget
+        '''
+        [DESCRIPTION]
+            Update useNugget option to turn on/off to use nugget be the diagonal of Kriging matrix.
+            The model has to be re-fit by calling update_fit() after updated variogram.
+        [INPUT]
+            useNugget : bool 
+        [OUTPUT]
+            Null
+        '''
+        self._useNugget = useNugget
 
     def update_algorithm(self, algorithm):
+        '''
+        [DESCRIPTION]
+            update algorithm of data structure
+        [INPUT]
+            algorithm : string, algorithm name of data structure %s
+        [OUTPUT]
+            Null
+        '''%( algorithms )
         if algorithm.lower() in algorithms:
-            self.algorithm = algorithm
+            self._algorithm = algorithm
         else:
             print('>> [WARNING] %d not found in algorithm list'% algorithm)
             print('             list: ', algorithms)
-            self.algorithm = 'kdtree'
+            self._algorithm = 'kdtree'
 
     def update_variogram(self, variogram):
-        self.variogram = variogram
+        '''
+        [DESCRIPTION]
+            Update variogram model. The model has to be re-fit by calling update_fit() after updated variogram.
+        [INPUT]
+            variogram : callable, input variogram model
+        [OUTPUT]
+            Null
+        '''
+        self._variogram = variogram
+
+    def update_fit(self, X=None, y=None, to=None, transparent=True, show=False):
+        '''
+        [DESCRIPTION]
+            Update the fitting. If X and y are not None, it stores the data with KDTree or original data structure, 
+            and it re-fit the variogram model with set parameters. Otherwise, it do re-fit only. 
+        [INPUT]
+            X          : array-like, input data with features, same data size with y. (None)
+            y          : array-like, input data with interesting value, same data size with X. (None)
+            to         : string,     path to save plot (None) 
+            transparent: True,       transparent background of plot (True)
+            show       : bool,       if show on screen (True)
+        [OUTPUT]
+            Null
+        '''
+        if X is not None:
+            if self._algorithm == 'kdtree':
+                self.X = cKDTree(X, copy_data=True)
+            else:
+                self.X = X
+        if y is not None: 
+            self.y = y
+
+        if self._algorithm == 'kdtree': 
+            self.fit(self.X.data, self.y, to=to, transparent=transparent, show=show)
+        else:
+            self.fit(self.X, self.y, to=to, transparent=transparent, show=show)
 
     def fit(self, X, y, to=None, transparent=True, show=False):
+        '''
+        [DESCRIPTION]
+            Store the data with KDTree or original data structure, and fit the variogram model with set parameters. 
+        [INPUT]
+            X          : array-like, input data with features, same data size with y.
+            y          : array-like, input data with interesting value, same data size with X
+            to         : string,     path to save plot (None) 
+            transparent: True,       transparent background of plot (True)
+            show       : bool,       if show on screen (True)
+        [OUTPUT]
+            Null
+        '''
         X = NP.atleast_1d(X)
         y = NP.atleast_1d(y)
         if len(X) != len(y):
             print(">> [ERROR] different size %di, %d"%(len(X), len(y)))
             raise
-        if self.variogram is None:
+        if self._variogram is None:
             print('>> [INFO] creating variogram....')
-            self.variogram = VAR(lag_range=self.lag_range, 
-                                 lag_max=self.lag_max, 
-                                 distance_type=self.distance_type, 
-                                 model=self.model_name, 
-                                 model_params=self.params, 
-                                 model_paramsbound=self.params_bound, 
-                                 n_jobs=self.n_jobs, 
-                                 good_lowbin_fit=self.good_lowbin_fit, 
-                                 tqdm=self.tqdm,
-                                 debug=self.debug)
-            self.variogram.fit(X,y)
+            self._variogram = VAR(lag_range=self.lag_range, 
+                                  lag_max=self.lag_max, 
+                                  distance_type=self.distance_type, 
+                                  model=self.model_name, 
+                                  model_params=self.params, 
+                                  model_paramsbound=self.params_bound, 
+                                  n_jobs=self.n_jobs, 
+                                  good_lowbin_fit=self.good_lowbin_fit, 
+                                  tqdm=self.tqdm,
+                                  debug=self.debug)
+            self._variogram.fit(X,y)
             if self.debug:
-                print('>> [DONE] Sill %.2f, ragne %.2f, nuget %.2f'%( self.variogram.get_params()[0], 
-                                                                      self.variogram.get_params()[1], 
-                                                                      self.variogram.get_params()[2]))
+                print('>> [DONE] Sill %.2f, ragne %.2f, nuget %.2f'%( self._variogram.get_params()[0], 
+                                                                      self._variogram.get_params()[1], 
+                                                                      self._variogram.get_params()[2]))
         else:
             if self.debug:
                 print('>> [INFO] kriging_ordinary::fit(): do nothing due to variogram existed')
@@ -82,7 +171,7 @@ class kriging_ordinary(VAR):
                 pass
 
         self.y = y
-        if self.algorithm == 'kdtree':
+        if self._algorithm == 'kdtree':
             self.X = cKDTree(X, copy_data=True)
         else:
             self.X = X
@@ -92,11 +181,13 @@ class kriging_ordinary(VAR):
         else:
             self.n_features = NP.shape(X)[1]
 
-        self.variogram.plot(to=to, transparent=transparent, show=show)
+        self._variogram.plot(to=to, transparent=transparent, show=show)
 
-    def predict(self, X, n_neighbor=5, radius=None, get_error=False):
-        ''' 
-           Loop for all data, the method take long time but save memory
+
+    def predict(self, X, n_neighbor=5, radius=NP.inf, get_error=False):
+        '''
+        [DESCRIPTION]
+           Calculate and predict interesting value with looping for all data, the method take long time but save memory
            Obtain the linear argibra terms
             | V_ij 1 || w_i | = | V_k |
             |  1   0 ||  u  |   |  1  |
@@ -109,6 +200,15 @@ class kriging_ordinary(VAR):
             u    : lagrainge multiplier
             Y    : true value of neighbors
             y    : predicted value of interesting point
+        [INPUT]
+            X          : array-like, input data with same number of fearture in training data
+            n_neighbor : int,        number of neighbor w.r.t input data, while distance < searching radius (5)
+            radius     : float,      searching radius w.r.t input data (inf)
+            get_error  : bool,       if return error (False)
+        [OUTPUT]
+            1D/2D array(float)
+            prediction : float, prdicted value via Kriging system
+            error      : float, error of predicted value (only if get_error = True)
         '''
         X = NP.atleast_1d(X)
         if len(NP.shape(X)) == 1:
@@ -130,7 +230,7 @@ class kriging_ordinary(VAR):
             return
 
         ## Find the neighbors 
-        if self.algorithm == 'kdtree':
+        if self._algorithm == 'kdtree':
             if self.debug:
                 print('>> [INFO] Finding closest neighbors with kdtree....')
             if self.distance_type == 'cityblock':
@@ -156,8 +256,8 @@ class kriging_ordinary(VAR):
             if self.tqdm:
                 batches.set_description(">> ")
 
-            ni = ni[nd < radius]
-            nd = nd[nd < radius]
+            ni = ni[nd < radius] # neighbors' index, while the distance < search radius
+            nd = nd[nd < radius] # neighbors' distance, while the distance < search radius
 
             if len(ni) == 0: 
                 continue 
@@ -169,20 +269,20 @@ class kriging_ordinary(VAR):
             b = NP.ones((n+1, 1))
 
             ## Fill matrix a
-            if self.algorithm == 'kdtree': 
+            if self._algorithm == 'kdtree': 
                 D = cdist(self.X.data[ni], self.X.data[ni], metric=self.distance_type)
             else:
                 D = cdist(self.X[ni], self.X[ni], metric=self.distance_type)
-            a[:n, :n] = self.variogram.predict(D)
+            a[:n, :n] = self._variogram.predict(D)
             a[:, n] = 1
             a[n, :] = 1
             a[n, n] = 0
 
             ## Fill vector b
-            b[:-1, 0] = self.variogram.predict(nd)
+            b[:-1, 0] = self._variogram.predict(nd)
 
             ## set self-varinace is zero if not using Nugget
-            if not self.useNugget:
+            if not self._useNugget:
                 ## modify a
                 NP.fill_diagonal(a, 0.)
                 ## modify b
@@ -207,11 +307,21 @@ class kriging_ordinary(VAR):
 
             
     def plot(self, to=None, title='', transparent=True, show=True):
-        """Displays variogram model with the actual binned data."""
+        """
+        [DESCRIPTION]
+            Displays or draw variogram model with the actual binned data.
+        [INPUT]
+            to          : string, path to save plot (None) 
+            title       : string, title in the plot ('')
+            transparent : True,   transparent background of plot (True)
+            show        : bool,   if show on screen (True)
+        [OUTPUT]
+            Null
+        """
         fig = PLT.figure()
         ax = fig.add_subplot(111)
-        ax.plot(self.variogram.lags, self.variogram.variances, 'r*')
-        ax.plot(self.variogram.lags, self.variogram.model(self.variogram.params, self.variogram.lags), 'k-')
+        ax.plot(self._variogram.lags, self._variogram.variances, 'r*')
+        ax.plot(self._variogram.lags, self._variogram.model(self._variogram.params, self._variogram.lags), 'k-')
         PLT.title(title)
         if show:
             PLT.show()
