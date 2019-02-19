@@ -298,12 +298,14 @@ class kriging_ordinary(VAR):
 
             if self.debug:
                 print(">>      %d neighbors < %.2f distance : %s "%(len(ni), radius, str(nd)))
-                print(">>      Fitted kriging matrix: ")
+                print(">>      Fitted kriging matrix b: ")
                 print(a)
-                print(">>      Fitted semivarince between the location to %d neighbors: "% n_neighbor)
+                print(">>      Fitted semivarince between the location to %d neighbors a: "% n_neighbor)
                 print(b)
-                print(">>      Weights: ")
+                print(">>      Weights w: ")
                 print(w)
+                print(">>      Observe value y: ")
+                print(self.y[ni])
 
             ## Fill results
             results[i] = w[:n, 0].dot(self.y[ni])
