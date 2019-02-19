@@ -273,7 +273,7 @@ class kriging_ordinary(VAR):
             else:
                 D = cdist(self.X[ni], self.X[ni], metric=self.distance_type)
             a[:n, :n] = self._variogram.predict(D)
-            a[:, n] = 1
+            a[:, n] = -1
             a[n, :] = 1
             a[n, n] = 0
 
@@ -298,9 +298,9 @@ class kriging_ordinary(VAR):
 
             if self.debug:
                 print(">>      %d neighbors < %.2f distance : %s "%(len(ni), radius, str(nd)))
-                print(">>      Fitted kriging matrix b: ")
+                print(">>      Fitted kriging matrix a: ")
                 print(a)
-                print(">>      Fitted semivarince between the location to %d neighbors a: "% n_neighbor)
+                print(">>      Fitted semivarince between the location to %d neighbors b: "% n_neighbor)
                 print(b)
                 print(">>      Weights w: ")
                 print(w)
