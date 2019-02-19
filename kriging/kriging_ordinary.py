@@ -273,7 +273,7 @@ class kriging_ordinary(VAR):
             else:
                 D = cdist(self.X[ni], self.X[ni], metric=self.distance_type)
             a[:n, :n] = self._variogram.predict(D)
-            a[:, n] = -1
+            a[:, n] = 1
             a[n, :] = 1
             a[n, n] = 0
 
