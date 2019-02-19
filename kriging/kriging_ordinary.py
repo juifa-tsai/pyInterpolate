@@ -11,7 +11,7 @@ algorithms = ['kdtree', 'brutal']
 
 class kriging_ordinary(VAR):
 
-    def __init__(self, variogram=None, useNugget=False, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
+    def __init__(self, variogram=None, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
      
         self.n_features = 0
         self.params = variogram_params 
@@ -20,7 +20,6 @@ class kriging_ordinary(VAR):
         self.update_good_lowbin_fit(variogram_good_lowbin_fit)
         self.update_tqdm(tqdm)
         self.update_debug(debug)
-        self.update_useNugget(useNugget)
         self.update_n_jobs(n_jobs)
         self.update_algorithm(algorithm)
         self.update_model(variogram_model)
@@ -62,18 +61,6 @@ class kriging_ordinary(VAR):
         '''
 
         self.debug = debug
-
-    def update_useNugget(self, useNugget):
-        '''
-        [DESCRIPTION]
-            Update useNugget option to turn on/off to use nugget be the diagonal of Kriging matrix.
-            The model has to be re-fit by calling update_fit() after updated variogram.
-        [INPUT]
-            useNugget : bool 
-        [OUTPUT]
-            Null
-        '''
-        self._useNugget = useNugget
 
     def update_algorithm(self, algorithm):
         '''
@@ -194,7 +181,7 @@ class kriging_ordinary(VAR):
         '''
         return self._variogram
 
-    def predict(self, X, n_neighbor=5, radius=NP.inf, get_error=False):
+    def predict(self, X, n_neighbor=5, radius=NP.inf, use_nugget=False, get_error=False):
         '''
         [DESCRIPTION]
            Calculate and predict interesting value with looping for all data, the method take long time but save memory
@@ -255,7 +242,7 @@ class kriging_ordinary(VAR):
         ## Calculate prediction
         if self.debug:
             print('>> [INFO] calculation prediction for %d data....'% len(X))
-        if self.tqdm:
+        if self.tqdm and not self.debug:
             batches = TQDM(range(0, len(X)))
         else:
             batches = range(0, len(X))
@@ -263,9 +250,11 @@ class kriging_ordinary(VAR):
         results = NP.zeros(len(X))
         errors = NP.zeros(len(X))
         for nd, ni, i in zip(neighbor_dst, neighbor_idx, batches):
-            if self.tqdm:
+            if self.tqdm and not self.debug:
                 batches.set_description(">> ")
-
+            elif self.debug:
+                print(">> [%d] %d neighbors distance : %s "%(i, len(ni), str(nd)))
+            
             ni = ni[nd < radius] # neighbors' index, while the distance < search radius
             nd = nd[nd < radius] # neighbors' distance, while the distance < search radius
 
@@ -292,22 +281,35 @@ class kriging_ordinary(VAR):
             b[:-1, 0] = self._variogram.predict(nd)
 
             ## set self-varinace is zero if not using Nugget
-            if not self._useNugget:
+            if not use_nugget:
                 ## modify a
                 NP.fill_diagonal(a, 0.)
                 ## modify b
                 zero_index = NP.where(NP.absolute(nd) == 0)
                 if len(zero_index) > 0:
                     b[zero_index[0], 0] = 0.
+            elif self.debug:
+                print(">>      Turn on using Nugget for the diagonal of kriging matrix") 
+
+
 
             ## Get weights
             w = scipy.linalg.solve(a, b)
+
+            if self.debug:
+                print(">>      %d neighbors < %.2f distance : %s "%(len(ni), radius, str(nd)))
+                print(">>      Fitted kriging matrix: ")
+                print(a)
+                print(">>      Fitted semivarince between the location to %d neighbors: "% n_neighbor)
+                print(b)
+                print(">>      Weights: ")
+                print(w)
 
             ## Fill results
             results[i] = w[:n, 0].dot(self.y[ni])
             errors[i] = w[:, 0].dot(b[:, 0])
 
-        if self.tqdm: 
+        if self.tqdm and not self.debug: 
             batches.close()
 
         if get_error:
