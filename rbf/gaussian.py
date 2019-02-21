@@ -27,8 +27,7 @@ class gaussian:
         self.update_params( radius_x, radius_y, theta )
 
     def update_params(self, radius_x, radius_y, theta):
-        if len(NP.atleast_1d(radius_x)) != len(NP.atleast_1d(radius_y)) or 
-           len(NP.atleast_1d(radius_x)) != len(NP.atleast_1d(theta)):
+        if len(NP.atleast_1d(radius_x)) != len(NP.atleast_1d(radius_y)) or len(NP.atleast_1d(radius_x)) != len(NP.atleast_1d(theta)):
             print('>> [ERROR] update_params: input different size')
             return
         else:
