@@ -29,23 +29,34 @@ class gaussian:
         self.update_radiusY(radius_y)
         self.update_theta(theta)
 
-    def update_radiusX(self, radius_x):
-        if self._size0 > 0 and self._size0 != len(NP.atleast_1d(radius_x)):
-            print('>> [ERROR] update_radiusX: input different size with fitting data')
-            return
-        self._radius_x = NP.atleast_1d(radius_x)
+    #def update_radiusX(self, radius_x):
+    #    if self._size0 > 0 and self._size0 != len(NP.atleast_1d(radius_x)):
+    #        print('>> [ERROR] update_radiusX: input different size with fitting data')
+    #        return
+    #    self._radius_x = NP.atleast_1d(radius_x)
 
-    def update_radiusY(self, radius_y):
-        if self._size0 > 0 and self._size0 != len(NP.atleast_1d(radius_y)):
-            print('>> [ERROR] update_radiusY: input different size with fitting data')
-            return
-        self._radius_y = NP.atleast_1d(radius_y)
+    #def update_radiusY(self, radius_y):
+    #    if self._size0 > 0 and self._size0 != len(NP.atleast_1d(radius_y)):
+    #        print('>> [ERROR] update_radiusY: input different size with fitting data')
+    #        return
+    #    self._radius_y = NP.atleast_1d(radius_y)
 
-    def update_theta(self, theta):
-        if self._size0 > 0 and self._size0 != len(NP.atleast_1d(theta)):
-            print('>> [ERROR] update_theta: input different size with fitting data')
+    #def update_theta(self, theta):
+    #    if self._size0 > 0 and self._size0 != len(NP.atleast_1d(theta)):
+    #        print('>> [ERROR] update_theta: input different size with fitting data')
+    #        return
+    #    self._theta = NP.atleast_1d(theta)
+
+    def update_params(self, radius_x, radius_y, theta):
+        if len(NP.atleast_1d(radius_x)) != len(NP.atleast_1d(radius_y)) or 
+           len(NP.atleast_1d(radius_x)) != len(NP.atleast_1d(theta)):
+            print('>> [ERROR] update_params: input different size')
             return
-        self._theta = NP.atleast_1d(theta)
+        else:
+            self._radius_x = NP.atleast_1d(radius_x)
+            self._radius_y = NP.atleast_1d(radius_y)
+            self._theta = NP.atleast_1d(theta)
+            self._size_params = len(self._theta)
 
     def predict(self, X):
         x = NP.atleast_2d(X)[:,0][:, NP.newaxis]
@@ -67,11 +78,16 @@ class gaussian:
         self._x0 = NP.atleast_2d(X)[:,0]
         self._y0 = NP.atleast_2d(X)[:,1]
         self._z0 = NP.atleast_1d(y)
-        if len(self._x0) != len(self._z0):
+        if len(NP.atleast_2d(X)[:,0]) != len(NP.atleast_1d(y)):
             print('>> [ERROR] fit: input different size')
             return
+        elif self._size_params > 1 and self._size_params != len(NP.atleast_1d(y)):
+            print('>> [ERROR] fit: input different size with parameters')
+            return
         else:
-            self._size0 = len(self._z0)
+            self._x0 = NP.atleast_2d(X)[:,0]
+            self._y0 = NP.atleast_2d(X)[:,1]
+            self._z0 = NP.atleast_1d(y)
 
         self._a =  NP.cos(self._theta)**2/(2*self._radius_x**2) + NP.sin(self._theta)**2/(2*self._radius_y**2)
         self._b =  NP.sin(self._theta)**2/(2*self._radius_x**2) + NP.cos(self._theta)**2/(2*self._radius_y**2) 
