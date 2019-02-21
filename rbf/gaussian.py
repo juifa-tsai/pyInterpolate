@@ -24,28 +24,7 @@ class gaussian:
     """
 
     def __init__(self, radius_x=2.5, radius_y=2.5, theta=0):
-        self._size0 = 0
-        self.update_radiusX(radius_x)
-        self.update_radiusY(radius_y)
-        self.update_theta(theta)
-
-    #def update_radiusX(self, radius_x):
-    #    if self._size0 > 0 and self._size0 != len(NP.atleast_1d(radius_x)):
-    #        print('>> [ERROR] update_radiusX: input different size with fitting data')
-    #        return
-    #    self._radius_x = NP.atleast_1d(radius_x)
-
-    #def update_radiusY(self, radius_y):
-    #    if self._size0 > 0 and self._size0 != len(NP.atleast_1d(radius_y)):
-    #        print('>> [ERROR] update_radiusY: input different size with fitting data')
-    #        return
-    #    self._radius_y = NP.atleast_1d(radius_y)
-
-    #def update_theta(self, theta):
-    #    if self._size0 > 0 and self._size0 != len(NP.atleast_1d(theta)):
-    #        print('>> [ERROR] update_theta: input different size with fitting data')
-    #        return
-    #    self._theta = NP.atleast_1d(theta)
+        self.update_params( radius_x, radius_y, theta )
 
     def update_params(self, radius_x, radius_y, theta):
         if len(NP.atleast_1d(radius_x)) != len(NP.atleast_1d(radius_y)) or 
@@ -57,22 +36,6 @@ class gaussian:
             self._radius_y = NP.atleast_1d(radius_y)
             self._theta = NP.atleast_1d(theta)
             self._size_params = len(self._theta)
-
-    def predict(self, X):
-        x = NP.atleast_2d(X)[:,0][:, NP.newaxis]
-        y = NP.atleast_2d(X)[:,1][:, NP.newaxis]
-        size = len(x)
-
-        x0 = NP.ones((size,self._size0))*self._x0
-        y0 = NP.ones((size,self._size0))*self._y0
-        z0 = NP.ones((size,self._size0))*self._z0
-        a = NP.ones((size,self._size0))*self._a
-        b = NP.ones((size,self._size0))*self._b
-        c = NP.ones((size,self._size0))*self._c
-
-        z =  z0 * NP.exp(-1 * (a*(x-x0)**2 + b*(y-y0)**2 + 2*c*(x-x0)*(y-y0)))
-        return z.sum(axis=1)
-
 
     def fit(self, X, y):
         self._x0 = NP.atleast_2d(X)[:,0]
@@ -92,4 +55,19 @@ class gaussian:
         self._a =  NP.cos(self._theta)**2/(2*self._radius_x**2) + NP.sin(self._theta)**2/(2*self._radius_y**2)
         self._b =  NP.sin(self._theta)**2/(2*self._radius_x**2) + NP.cos(self._theta)**2/(2*self._radius_y**2) 
         self._c = -NP.sin(2*self._theta)/(4*self._radius_x**2)  + NP.sin(2*self._theta)/(4*self._radius_y**2)
+
+    def predict(self, X):
+        x = NP.atleast_2d(X)[:,0][:, NP.newaxis]
+        y = NP.atleast_2d(X)[:,1][:, NP.newaxis]
+        size = len(x)
+
+        x0 = NP.ones((size,self._size0))*self._x0
+        y0 = NP.ones((size,self._size0))*self._y0
+        z0 = NP.ones((size,self._size0))*self._z0
+        a = NP.ones((size,self._size0))*self._a
+        b = NP.ones((size,self._size0))*self._b
+        c = NP.ones((size,self._size0))*self._c
+
+        z =  z0 * NP.exp(-1 * (a*(x-x0)**2 + b*(y-y0)**2 + 2*c*(x-x0)*(y-y0)))
+        return z.sum(axis=1)
 
