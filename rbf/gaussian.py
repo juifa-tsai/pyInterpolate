@@ -24,6 +24,7 @@ class gaussian:
     """
 
     def __init__(self, radius_x=2.5, radius_y=2.5, theta=0):
+        self._size=0
         self.update_params( radius_x, radius_y, theta )
 
     def update_params(self, radius_x, radius_y, theta):
@@ -50,6 +51,7 @@ class gaussian:
             self._x0 = NP.atleast_2d(X)[:,0]
             self._y0 = NP.atleast_2d(X)[:,1]
             self._z0 = NP.atleast_1d(y)
+            self._size = len(self._z0)
 
         self._a =  NP.cos(self._theta)**2/(2*self._radius_x**2) + NP.sin(self._theta)**2/(2*self._radius_y**2)
         self._b =  NP.sin(self._theta)**2/(2*self._radius_x**2) + NP.cos(self._theta)**2/(2*self._radius_y**2) 
@@ -60,12 +62,12 @@ class gaussian:
         y = NP.atleast_2d(X)[:,1][:, NP.newaxis]
         size = len(x)
 
-        x0 = NP.ones((size,self._size0))*self._x0
-        y0 = NP.ones((size,self._size0))*self._y0
-        z0 = NP.ones((size,self._size0))*self._z0
-        a = NP.ones((size,self._size0))*self._a
-        b = NP.ones((size,self._size0))*self._b
-        c = NP.ones((size,self._size0))*self._c
+        x0 = NP.ones((size,self._size))*self._x0
+        y0 = NP.ones((size,self._size))*self._y0
+        z0 = NP.ones((size,self._size))*self._z0
+        a = NP.ones((size,self._size))*self._a
+        b = NP.ones((size,self._size))*self._b
+        c = NP.ones((size,self._size))*self._c
 
         z =  z0 * NP.exp(-1 * (a*(x-x0)**2 + b*(y-y0)**2 + 2*c*(x-x0)*(y-y0)))
         return z.sum(axis=1)
