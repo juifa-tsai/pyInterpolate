@@ -1,4 +1,6 @@
 import numpy as NP
+import rasterio as RAST
+from rasterio.transform import from_origin
 from .utility import create_batchrange
 
 class gaussian:

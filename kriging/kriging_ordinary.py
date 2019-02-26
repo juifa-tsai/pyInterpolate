@@ -3,7 +3,6 @@ import scipy.linalg
 import matplotlib.pyplot as PLT
 import rasterio as RAST
 from rasterio.transform import from_origin
-from shapely.geometry import Point
 from tqdm import tqdm as TQDM
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
