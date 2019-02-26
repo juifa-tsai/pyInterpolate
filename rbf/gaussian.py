@@ -24,7 +24,8 @@ class gaussian:
         ref : https://en.wikipedia.org/wiki/Gaussian_function#Two-dimensional_Gaussian_function
     """
 
-    def __init__(self, radius_x=2.5, radius_y=2.5, theta=0):
+    def __init__(self, radius_x=2.5, radius_y=2.5, theta=0, debug=False):
+        self.debug = debug
         self._size=0
         self.update_params( radius_x, radius_y, theta )
 
