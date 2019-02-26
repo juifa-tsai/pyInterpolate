@@ -77,7 +77,7 @@ class gaussian:
         z =  z0 * NP.exp(-1 * (a*(x-x0)**2 + b*(y-y0)**2 + 2*c*(x-x0)*(y-y0)))
         return z.sum(axis=1)
 
-    def to_2D(self, xmin, xmax, ymin, ymax, cellsize=50, n_cell_per_job=1000, tqdm=False, crs='epgs:3826', to_raster=None, ):
+    def to_2D(self, xmin, xmax, ymin, ymax, cellsize=50, n_cell_per_job=1000, tqdm=False, crs='epsg:3826', to_raster=None, ):
         """
         [DESCRIPTION]
             Output raster data of prediction w.r.t. given extent size
@@ -89,7 +89,7 @@ class gaussian:
             cellsize  : flaot,  cell size of extent (50)
             n_cell_per_job : int, number of cell in processing batch jobs (1000)
             tqdm      : bool,   if show the tqdm processing bar (False)
-            crs       : string, the projection code for output raster tif ('epgs:3826')
+            crs       : string, the projection code for output raster tif ('epsg:3826')
             to_raster : string, path to save raster tif. If None, the function return the values only (None) 
         [OUTPUT]
             predicted value,

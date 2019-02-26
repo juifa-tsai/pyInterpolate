@@ -348,7 +348,7 @@ class kriging_ordinary(VAR):
             print('>> [INFO] Saving plot to %s'% to)
             PLT.savefig(to, transparent=transparent)
 
-    def to_2D(self, xmin, xmax, ymin, ymax, cellsize=50, n_neighbor=5, radius=NP.inf, use_nugget=False, get_error=False, n_cell_per_job=1000, tqdm=False, crs='epgs:3826', to_raster=None, ):
+    def to_2D(self, xmin, xmax, ymin, ymax, cellsize=50, n_neighbor=5, radius=NP.inf, use_nugget=False, get_error=False, n_cell_per_job=1000, tqdm=False, crs='epsg:3826', to_raster=None, ):
         """
         [DESCRIPTION]
             Output raster data of prediction w.r.t. given extent size
@@ -364,7 +364,7 @@ class kriging_ordinary(VAR):
             get_error : bool,   if return error (False)
             n_cell_per_job : int, number of cell in processing batch jobs (1000)
             tqdm      : bool,   if show the tqdm processing bar (False)
-            crs       : string, the projection code for output raster tif ('epgs:3826')
+            crs       : string, the projection code for output raster tif ('epsg:3826')
             to_raster : string, path to save raster tif. If None, the function return the values only (None) 
         [OUTPUT]
             predicted value,
