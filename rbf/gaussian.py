@@ -1,5 +1,6 @@
 import numpy as NP
 import rasterio as RAST
+from tqdm import tqdm as TQDM
 from rasterio.transform import from_origin
 from .utility import create_batchrange
 
