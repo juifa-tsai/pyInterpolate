@@ -72,3 +72,70 @@ class gaussian:
         z =  z0 * NP.exp(-1 * (a*(x-x0)**2 + b*(y-y0)**2 + 2*c*(x-x0)*(y-y0)))
         return z.sum(axis=1)
 
+    def to_2D(self, xmin, xmax, ymin, ymax, cellsize=50, n_cell_per_job=1000, tqdm=False, crs='epgs:3826', to_raster=None, ):
+        """
+        [DESCRIPTION]
+            Output raster data of prediction w.r.t. given extent size
+        [INPUT]
+            xmin      : float,  minimum value of x-axis of extent (None) 
+            xmax      : float,  maximum value of x-axis of extent (None) 
+            ymin      : float,  minimum value of y-axis of extent (None)
+            ymax      : float,  maximum value of y-axis of extent (None)
+            cellsize  : flaot,  cell size of extent (50)
+            n_cell_per_job : int, number of cell in processing batch jobs (1000)
+            tqdm      : bool,   if show the tqdm processing bar (False)
+            crs       : string, the projection code for output raster tif ('epgs:3826')
+            to_raster : string, path to save raster tif. If None, the function return the values only (None) 
+        [OUTPUT]
+            predicted value,
+            grid of extent
+        """
+        if self._size == 0:
+            print(">> [ERROR] do fit() before calling to_2D()")
+            return
+
+        ## Create 2D extent
+        X, Y = NP.meshgrid( NP.arange(xmin, xmax+cellsize, cellsize),
+                            NP.arange(ymin, ymax+cellsize, cellsize))
+        xy = NP.concatenate(( X.flatten()[:, NP.newaxis], 
+                              Y.flatten()[:, NP.newaxis]), 
+                            axis=1)
+
+        ## Define variables
+        xbins = X.shape[1]
+        ybins = Y.shape[0]
+        z = NP.array([])
+
+        ## Create batches 
+        batches = create_batchrange( len(xy), int(len(xy)/n_cell_per_job) )
+        if self.debug: 
+            print(">> [INFO] Interpolating %d pixels (%d, %d) to %d batches:"%(len(xy), xbins, ybins, len(batches)))
+        if tqdm:
+            batches= TQDM(batches)
+
+        ## Predict values
+        for idx in batches:
+            if tqdm:
+                batches.set_description(">> ")
+            z_new = self.predict(xy[idx[0]:idx[1], :])
+            z = NP.append(z, z_new)
+
+        ## Set raster left-top's coordinates
+        if to_raster is not None:
+            ### Set raster left-top's coordinates
+            transform = from_origin(xy[:,0].min(), xy[:,1].max(), cellsize, cellsize)
+
+            ### Writing raster
+            raster = RAST.open( to_raster, 
+                                'w',
+                                driver='GTiff',
+                                height=ybins,
+                                width=xbins,
+                                count=1,
+                                dtype=z.dtype,
+                                crs=crs,
+                                transform=transform )
+            raster.write(NP.flip(z.reshape(ybins,xbins), 0), 1)
+            raster.close()
+        return z, xy
+
