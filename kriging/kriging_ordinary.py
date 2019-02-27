@@ -375,11 +375,13 @@ class kriging_ordinary(VAR):
             print(">> [ERROR] do fit() before calling to_2D()")
             return
 
-        ## Create 2D extent
+        ## Create 2D extent and grid
+        ### Grid is from top-left to bottom-right
         X, Y = NP.meshgrid( NP.arange(xmin, xmax+cellsize, cellsize),
                             NP.arange(ymin, ymax+cellsize, cellsize))
-        xy = NP.concatenate(( X.flatten()[:, NP.newaxis], 
-                              Y.flatten()[:, NP.newaxis]), 
+        ### set prediction location is in the central of grid
+        xy = NP.concatenate(( X.flatten()[:, NP.newaxis] + cellsize/2, 
+                              Y.flatten()[:, NP.newaxis] - cellsize/2), 
                             axis=1)
 
         ## Define variables
@@ -418,7 +420,7 @@ class kriging_ordinary(VAR):
         ## Set raster left-top's coordinates
         if to_raster is not None:
             ### Set raster left-top's coordinates
-            transform = from_origin(xy[:,0].min(), xy[:,1].max(), cellsize, cellsize)
+            transform = from_origin(X.min(), Y.max(), cellsize, cellsize)
 
             ### Writing raster
             raster = RAST.open( to_raster, 
