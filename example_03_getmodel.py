@@ -11,17 +11,18 @@ from kriging.variogram import *
 from kriging.kriging_ordinary import *
 
 ## loading data
-date='2018-12'
+date='2016-12'
 print('Loading data %s....'% date)
-df = PD.read_csv('/Volumes/Data2/Workspace/GENM/results/projectionOfRoute/routeProjection_'+date+'_3826.csv')
+df = PD.read_csv('/Volumes/Data2/Workspace/GENM/results/tmp/projectionOfRoute/routeProjection_'+date+'_3826.csv')
 #df = PD.read_csv('routeProjection_'+date+'_3826.csv')
 
 ## variogram
-lagrange = 25 # meter
-lagmax = 5000 # meter
+lagrange = 50 # meter
+#lagmax = 5000 # meter
+lagmax = 3000 # meter
 batchsize = 500
-#distance='euclidean'
-distance='cityblock'
+distance='euclidean'
+#distance='cityblock'
 model='exponential'
 
 ## kringning
@@ -42,13 +43,15 @@ OK = kriging_ordinary( distance_type=distance,
                        lag_max=lagmax,
                        variogram_model=model,
                        n_jobs=len(df)/batchsize,
+                       #useNugget=True
                        tqdm=True,
                        debug=True)
 OK.fit(df[['x','y']].values, df['passingby_user'].values)
 OK.update_debug(False)
 OK.update_tqdm(False)
-OK.variogram.plot('variogram_'+date+'_'+model+'_'+distance+'.png', show=False, title='Sill %.2f, ragne %.2f, nuget %.2f'%( OK.variogram.get_params()[0], 
-                                                                                                                           OK.variogram.get_params()[1], 
-                                                                                                                           OK.variogram.get_params()[2]))
 PKL.dump(OK, open('model_passingby_'+date+'_'+distance+'_'+str(n_neighbor)+'.pkl', 'wb'))
+
+OK.variogram().plot('variogram_'+date+'_'+model+'_'+distance+'.png', show=False, title='Sill %.2f, ragne %.2f, nuget %.2f'%( OK.variogram().get_params()[0], 
+                                                                                                                           OK.variogram().get_params()[1], 
+                                                                                                                           OK.variogram().get_params()[2]))
 
