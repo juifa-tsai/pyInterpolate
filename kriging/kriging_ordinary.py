@@ -247,11 +247,12 @@ class kriging_ordinary(VAR):
         ## Calculate prediction
         if self.debug:
             print('>> [INFO] calculation prediction for %d data....'% len(X))
+        ### Create batch jobs
         if self.tqdm and not self.debug:
             batches = TQDM(range(0, len(X)))
         else:
             batches = range(0, len(X))
-
+        ### Loops jobs
         results = NP.zeros(len(X))
         errors = NP.zeros(len(X))
         for nd, ni, i in zip(neighbor_dst, neighbor_idx, batches):
@@ -259,62 +260,39 @@ class kriging_ordinary(VAR):
                 batches.set_description(">> ")
             elif self.debug:
                 print(">> [%d] %d neighbors distance : %s "%(i, len(ni), str(nd)))
-            
+           
+            #### Select with searching radius
             ni = ni[nd < radius] # neighbors' index, while the distance < search radius
             nd = nd[nd < radius] # neighbors' distance, while the distance < search radius
 
+            #### Calculate kriging system
             if len(ni) == 0: 
                 continue 
-            else: 
-                n = len(ni)
-
-            ## Initialization
-            a = NP.zeros((n+1,n+1))  
-            b = NP.ones((n+1, 1))
-
-            ## Fill matrix a
-            if self._algorithm == 'kdtree': 
-                D = cdist(self._X.data[ni], self._X.data[ni], metric=self.distance_type)
             else:
-                D = cdist(self._X[ni], self._X[ni], metric=self.distance_type)
-            a[:n, :n] = self._variogram.predict(D)
-            a[:, n] = 1
-            a[n, :] = 1
-            a[n, n] = 0
+                a, b, w = self.get_weights( ni, nd, use_nugget)
+                ##### Drop negative weight and re-compute
+                while len(ni) > 0 and len(NP.where(w[:len(ni), 0] < 0.)) > 0:
+                    selected = NP.where(w[:len(ni), 0] >= 0.)
+                    ni = ni[selected]
+                    nd = nd[selected]
+                    a, b, w = self.get_weights( ni, nd, use_nugget)
+                if len(ni) == 0:
+                    continue
 
-            ## Fill vector b
-            b[:-1, 0] = self._variogram.predict(nd)
+                if self.debug:
+                    print(">>      %d neighbors < %.2f distance : %s "%(len(ni), radius, str(nd)))
+                    print(">>      Fitted kriging matrix a: ")
+                    print(a)
+                    print(">>      Fitted semivarince between the location to %d neighbors b: "% n_neighbor)
+                    print(b)
+                    print(">>      Weights w: ")
+                    print(w)
+                    print(">>      Observe value y: ")
+                    print(self.y[ni])
 
-            ## set self-varinace is zero if not using Nugget
-            if not use_nugget:
-                ## modify a
-                NP.fill_diagonal(a, 0.)
-                ## modify b
-                zero_index = NP.where(NP.absolute(nd) == 0)
-                if len(zero_index) > 0:
-                    b[zero_index[0], 0] = 0.
-            elif self.debug:
-                print(">>      Turn on using Nugget for the diagonal of kriging matrix") 
-
-
-
-            ## Get weights
-            w = scipy.linalg.solve(a, b)
-
-            if self.debug:
-                print(">>      %d neighbors < %.2f distance : %s "%(len(ni), radius, str(nd)))
-                print(">>      Fitted kriging matrix a: ")
-                print(a)
-                print(">>      Fitted semivarince between the location to %d neighbors b: "% n_neighbor)
-                print(b)
-                print(">>      Weights w: ")
-                print(w)
-                print(">>      Observe value y: ")
-                print(self.y[ni])
-
-            ## Fill results
-            results[i] = w[:n, 0].dot(self.y[ni])
-            errors[i] = w[:, 0].dot(b[:, 0])
+                ## Fill results
+                results[i] = w[:len(ni), 0].dot(self.y[ni])
+                errors[i] = w[:, 0].dot(b[:, 0])
 
         if self.tqdm and not self.debug: 
             batches.close()
@@ -323,6 +301,73 @@ class kriging_ordinary(VAR):
             return results, errors
         else:
             return results
+
+    def get_kriging(self, neighbor_idxs, neighbor_dist, use_nugget=False):
+        '''
+        [DESCRIPTION]
+           Calculate kriging system
+           Obtain the linear argibra terms
+            | V_ij 1 || w_i | = | V_k |
+            |  1   0 ||  u  |   |  1  |
+                a    *   w    =    b
+              w = a^-1 * b
+            V_ij : semi-variance matrix within n neighors
+            V_k  : semi-variance vector between interesting point and n neighbors
+            w_i  : weights for linear combination
+            u    : lagrainge multiplier
+        [INPUT]
+            neighbor_idxs:  array-like, index of training data which are the neighbors of the interesting point.
+            neighbor_dist:  array-like, distance between training data and interesting point. The training data are the neighbors of the interesting point as in neighbor_idxs.
+            use_nugget :    bool,       if use nugget to be diagonal of kriging matrix for prediction calculation (False)
+        [OUTPUT]
+            a : array-like, kriging matrix
+            b : array-like, semi-variogram vector between interesting point and the neighbors.
+            w : array-like, weights of neighbors for prediction
+        '''
+        if len(neighbor_idxs) != len(neighbor_dist):
+            print(">> [ERROR] get_weights: different shape between neighbor_idxs and neighbor_dist")
+            return
+        elif len(neighbor_idxs) == 0:
+            print(">> [WARNING] get_weights: input 0 shape")
+            return 0
+        else:
+            neighbor_idxs = NP.atleast_1d(neighbor_idxs)
+            neighbor_dist = NP.atleast_1d(neighbor_dist)
+            n = len(neighbor_idxs)
+    
+        ## Initialization
+        a = NP.zeros((n+1,n+1))  
+        b = NP.ones((n+1, 1))
+    
+        ## Fill matrix a
+        if self._algorithm == 'kdtree': 
+            D = cdist(self._X.data[neighbor_idxs], self._X.data[neighbor_idxs], metric=self.distance_type)
+        else:
+            D = cdist(self._X[neighbor_idxs], self._X[neighbor_idxs], metric=self.distance_type)
+        a[:n, :n] = self._variogram.predict(D)
+        a[:, n] = 1
+        a[n, :] = 1
+        a[n, n] = 0
+    
+        ## Fill vector b
+        b[:-1, 0] = self._variogram.predict(neighbor_dist)
+    
+        ## set self-varinace is zero if not using Nugget
+        if not use_nugget:
+            ## modify a
+            NP.fill_diagonal(a, 0.)
+            ## modify b
+            zero_index = NP.where(NP.absolute(neighbor_dist) == 0.)
+            if len(zero_index) > 0:
+                b[zero_index[0], 0] = 0.
+        elif self.debug:
+            print(">>      Turn on using Nugget for the diagonal of kriging matrix") 
+    
+        ## Get weights
+        w = scipy.linalg.solve(a, b)
+    
+        return a, b, w
+
 
             
     def plot(self, to=None, title='', transparent=True, show=True):
