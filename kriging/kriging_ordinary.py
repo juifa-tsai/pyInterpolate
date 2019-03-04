@@ -185,7 +185,7 @@ class kriging_ordinary(VAR):
         '''
         return self._variogram
 
-    def predict(self, X, n_neighbor=5, radius=NP.inf, use_nugget=False, get_error=False):
+    def predict(self, X, n_neighbor=None, radius=NP.inf, use_nugget=False, get_error=False):
         '''
         [DESCRIPTION]
            Calculate and predict interesting value with looping for all data, the method take long time but save memory
@@ -203,7 +203,7 @@ class kriging_ordinary(VAR):
             y    : predicted value of interesting point
         [INPUT]
             X          : array-like, input data with same number of fearture in training data
-            n_neighbor : int,        number of neighbor w.r.t input data, while distance < searching radius (5)
+            n_neighbor : int,        number of neighbor w.r.t input data, while distance < searching radius (None)
             radius     : float,      searching radius w.r.t input data (inf)
             use_nugget : bool,       if use nugget to be diagonal of kriging matrix for prediction calculation (False)
             get_error  : bool,       if return error (False)
@@ -223,8 +223,8 @@ class kriging_ordinary(VAR):
             print('>> [ERROR] wrong input number of features %d, %d'%( NP.shape(X)[1], self.n_features))
             return
 
-        if n_neighbor <= 0:
-            print(">> [ERROR] number of neighbor must be > 0")
+        if n_neighbor is not None and n_neighbor <= 0:
+            print(">> [ERROR] number of neighbor must be > 0 or None")
             return
 
         if radius <= 0:
@@ -235,47 +235,60 @@ class kriging_ordinary(VAR):
         if self._algorithm == 'kdtree':
             if self.debug:
                 print('>> [INFO] Finding closest neighbors with kdtree....')
-            if self.distance_type == 'cityblock':
-                neighbor_dst, neighbor_idx = self._X.query(X, k=n_neighbor, p=1 )
+            if n_neighbor is None:
+                neighbor_idx = self._X.query_ball_point(X, r=radius, p = 1 if self.distance_type == 'cityblock' else 2 )
+                neighbor_dst = NP.zeros((len(neighbor_idx), 1))
             else:
-                neighbor_dst, neighbor_idx = self._X.query(X, k=n_neighbor, p=2 )
+                neighbor_dst, neighbor_idx = self._X.query(X, k=n_neighbor, p = 1 if self.distance_type == 'cityblock' else 2 )
         else:
             if self.debug:
                 print('>> [INFO] Finding closest neighbors with brutal loops....')
-            neighbor_dst, neighbor_idx = get_neighors_brutal( X, self._X, k=n_neighbor, distance=self.distance, n_jobs=self.n_jobs, tqdm=self.tqdm)
+            if n_neighbor is not None:
+                neighbor_dst, neighbor_idx = get_neighors_brutal( X, self._X, k=n_neighbor, distance=self.distance_type, n_jobs=self.n_jobs, tqdm=self.tqdm)
+            else:
+                print(">> [ERROR] please provide n_nieghbor in brutal")
+                return
 
         ## Calculate prediction
         if self.debug:
             print('>> [INFO] calculation prediction for %d data....'% len(X))
+
         ### Create batch jobs
         if self.tqdm and not self.debug:
             batches = TQDM(range(0, len(X)))
         else:
             batches = range(0, len(X))
+
         ### Loops jobs
         results = NP.zeros(len(X))
         errors = NP.zeros(len(X))
         for nd, ni, i in zip(neighbor_dst, neighbor_idx, batches):
             if self.tqdm and not self.debug:
                 batches.set_description(">> ")
-            elif self.debug:
-                print(">> [%d] %d neighbors distance : %s "%(i, len(ni), str(nd)))
            
-            #### Select with searching radius
-            ni = ni[nd < radius] # neighbors' index, while the distance < search radius
-            nd = nd[nd < radius] # neighbors' distance, while the distance < search radius
+            #### Selection and get distance
+            if n_neighbor is None:
+                ni = NP.atleast_1d(ni)
+                nd = cdist( NP.atleast_2d(X[i, :]), self._X.data[ni], metric=self.distance_type )[0, :]
+            else:
+                #### Select with searching radius
+                ni = ni[nd <= radius] # neighbors' index, while the distance < search radius
+                nd = nd[nd <= radius] # neighbors' distance, while the distance < search radius
+
+            if self.debug:
+                print(">> [%d] %d neighbors distance : %s "%(i, len(ni), str(nd)))
 
             #### Calculate kriging system
             if len(ni) == 0: 
                 continue 
             else:
-                a, b, w = self.get_weights( ni, nd, use_nugget)
+                a, b, w = self.get_kriging( ni, nd, use_nugget)
                 ##### Drop negative weight and re-compute
-                while len(ni) > 0 and len(NP.where(w[:len(ni), 0] < 0.)) > 0:
-                    selected = NP.where(w[:len(ni), 0] >= 0.)
+                while len(ni) > 0 and len(NP.where(w[:len(ni), 0] < 0.)[0]) > 0:
+                    selected = NP.where(w[:len(ni), 0] >= 0.)[0]
                     ni = ni[selected]
                     nd = nd[selected]
-                    a, b, w = self.get_weights( ni, nd, use_nugget)
+                    a, b, w = self.get_kriging( ni, nd, use_nugget)
                 if len(ni) == 0:
                     continue
 
@@ -283,7 +296,7 @@ class kriging_ordinary(VAR):
                     print(">>      %d neighbors < %.2f distance : %s "%(len(ni), radius, str(nd)))
                     print(">>      Fitted kriging matrix a: ")
                     print(a)
-                    print(">>      Fitted semivarince between the location to %d neighbors b: "% n_neighbor)
+                    print(">>      Fitted semivarince between the location to neighbors b: ")
                     print(b)
                     print(">>      Weights w: ")
                     print(w)
