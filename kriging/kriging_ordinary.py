@@ -236,7 +236,7 @@ class kriging_ordinary(VAR):
         if self.debug:
             print('>> [INFO] Finding closest neighbors with %s....'% self._algorithm)
         if self._algorithm == 'kdtree':
-            if n_neighbor not is None:
+            if n_neighbor is not None:
                 neighbor_dst, neighbor_idx = self._X.query(X, k=n_neighbor, p = 1 if self.distance_type == 'cityblock' else 2 )
             else:
                 neighbor_idx = self._X.query_ball_point(X, r=radius, p = 1 if self.distance_type == 'cityblock' else 2 )
