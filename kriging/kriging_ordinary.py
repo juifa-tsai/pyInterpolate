@@ -9,13 +9,14 @@ from scipy.spatial.distance import cdist
 from .variogram import variogram as VAR
 from .utility import get_neighors_brutal, create_batchrange
 
-algorithms = ['kdtree', 'brutal']
+DATA_ALGORITHMS = ['kdtree', 'brutal']
 
 class kriging_ordinary(VAR):
 
     def __init__(self, variogram=None, distance_type='euclidean', lag_range=None, lag_max=NP.inf, variogram_model='poly1', variogram_params=None, variogram_paramsbound=None, n_jobs=1, variogram_good_lowbin_fit=False, tqdm=False, debug=False, algorithm='kdtree'):
     
         self._X = None
+        self._Y = None
         self.n_features = 0
         self.params = variogram_params 
         self.params_bound = variogram_paramsbound
@@ -73,12 +74,12 @@ class kriging_ordinary(VAR):
             algorithm : string, algorithm name of data structure %s
         [OUTPUT]
             Null
-        '''%( algorithms )
-        if algorithm.lower() in algorithms:
+        '''%( DATA_ALGORITHMS )
+        if algorithm.lower() in DATA_ALGORITHMS:
             self._algorithm = algorithm
         else:
             print('>> [WARNING] %d not found in algorithm list'% algorithm)
-            print('             list: ', algorithms)
+            print('             list: ', DATA_ALGORITHMS)
             self._algorithm = 'kdtree'
 
     def update_variogram(self, variogram):
@@ -112,12 +113,12 @@ class kriging_ordinary(VAR):
             else:
                 self._X = X
         if y is not None: 
-            self.y = y
+            self._y = y
 
         if self._algorithm == 'kdtree': 
-            self.fit(self._X.data, self.y, to=to, transparent=transparent, show=show)
+            self.fit(self._X.data, self._y, to=to, transparent=transparent, show=show)
         else:
-            self.fit(self._X, self.y, to=to, transparent=transparent, show=show)
+            self.fit(self._X, self._y, to=to, transparent=transparent, show=show)
 
     def fit(self, X, y, to=None, transparent=True, show=False):
         '''
@@ -160,7 +161,7 @@ class kriging_ordinary(VAR):
             else:
                 pass
 
-        self.y = y
+        self._y = y
         if self._algorithm == 'kdtree':
             self._X = cKDTree(X, copy_data=True)
         else:
@@ -231,81 +232,79 @@ class kriging_ordinary(VAR):
             print('>> [ERROR] radius must be > 0')
             return
 
-        ## Find the neighbors 
+        ## Find the neighbors w.r.t to data structure 
+        if self.debug:
+            print('>> [INFO] Finding closest neighbors with %s....'% self._algorithm)
         if self._algorithm == 'kdtree':
-            if self.debug:
-                print('>> [INFO] Finding closest neighbors with kdtree....')
-            if n_neighbor is None:
+            if n_neighbor not is None:
+                neighbor_dst, neighbor_idx = self._X.query(X, k=n_neighbor, p = 1 if self.distance_type == 'cityblock' else 2 )
+            else:
                 neighbor_idx = self._X.query_ball_point(X, r=radius, p = 1 if self.distance_type == 'cityblock' else 2 )
                 neighbor_dst = NP.zeros((len(neighbor_idx), 1))
-            else:
-                neighbor_dst, neighbor_idx = self._X.query(X, k=n_neighbor, p = 1 if self.distance_type == 'cityblock' else 2 )
         else:
-            if self.debug:
-                print('>> [INFO] Finding closest neighbors with brutal loops....')
-            if n_neighbor is not None:
-                neighbor_dst, neighbor_idx = get_neighors_brutal( X, self._X, k=n_neighbor, distance=self.distance_type, n_jobs=self.n_jobs, tqdm=self.tqdm)
-            else:
-                print(">> [ERROR] please provide n_nieghbor in brutal")
-                return
+            neighbor_dst, neighbor_idx = get_neighors_brutal( X, self._X, k=n_neighbor, distance=self.distance_type, n_jobs=self.n_jobs, tqdm=self.tqdm)
 
         ## Calculate prediction
         if self.debug:
             print('>> [INFO] calculation prediction for %d data....'% len(X))
 
-        ### Create batch jobs
+        ### Create batch data
         if self.tqdm and not self.debug:
             batches = TQDM(range(0, len(X)))
         else:
             batches = range(0, len(X))
 
-        ### Loops jobs
+        ### Loops each data
         results = NP.zeros(len(X))
         errors = NP.zeros(len(X))
+
         for nd, ni, i in zip(neighbor_dst, neighbor_idx, batches):
             if self.tqdm and not self.debug:
                 batches.set_description(">> ")
+            if len(ni) == 0: 
+                continue 
            
             #### Selection and get distance
-            if n_neighbor is None:
+            if n_neighbor is None and self._algorithm == 'kdtree':
                 ni = NP.atleast_1d(ni)
-                nd = cdist( NP.atleast_2d(X[i, :]), self._X.data[ni], metric=self.distance_type )[0, :]
+                nd = cdist( NP.atleast_2d(X[i, :]), self._X.data[ni], metric=self.distance_type )[0, :] # output [[500, 30, ....]]
             else:
                 #### Select with searching radius
                 ni = ni[nd <= radius] # neighbors' index, while the distance < search radius
                 nd = nd[nd <= radius] # neighbors' distance, while the distance < search radius
+                if len(ni) == 0: 
+                    continue 
 
             if self.debug:
-                print(">> [%d] %d neighbors distance : %s "%(i, len(ni), str(nd)))
+                print(">> [data %d] %d neighbors distance : %s "%(i, len(ni), str(nd)))
 
             #### Calculate kriging system
-            if len(ni) == 0: 
-                continue 
-            else:
+            a, b, w = self.get_kriging( ni, nd, use_nugget)
+
+            #### Drop negative weight and re-compute
+            while len(ni) > 0 and len(NP.where(w[:len(ni), 0] < 0.)[0]) > 0:
+                selected = NP.where(w[:len(ni), 0] >= 0.)[0]
+                ni = ni[selected]
+                nd = nd[selected]
                 a, b, w = self.get_kriging( ni, nd, use_nugget)
-                ##### Drop negative weight and re-compute
-                while len(ni) > 0 and len(NP.where(w[:len(ni), 0] < 0.)[0]) > 0:
-                    selected = NP.where(w[:len(ni), 0] >= 0.)[0]
-                    ni = ni[selected]
-                    nd = nd[selected]
-                    a, b, w = self.get_kriging( ni, nd, use_nugget)
-                if len(ni) == 0:
-                    continue
 
-                if self.debug:
-                    print(">>      %d neighbors < %.2f distance : %s "%(len(ni), radius, str(nd)))
-                    print(">>      Fitted kriging matrix a: ")
-                    print(a)
-                    print(">>      Fitted semivarince between the location to neighbors b: ")
-                    print(b)
-                    print(">>      Weights w: ")
-                    print(w)
-                    print(">>      Observe value y: ")
-                    print(self.y[ni])
+            if len(ni) == 0:
+                continue
 
-                ## Fill results
-                results[i] = w[:len(ni), 0].dot(self.y[ni])
-                errors[i] = w[:, 0].dot(b[:, 0])
+            ## Fill results
+            if self.debug:
+                print(">>      %d neighbors < %.2f distance : %s "%(len(ni), radius, str(nd)))
+                print(">>      a, fitted kriging matrix: ")
+                print(a)
+                print(">>      b, fitted semivarince between the location to neighbors: ")
+                print(b)
+                print(">>      w, weights: ")
+                print(w)
+                print(">>      y, observe value: ")
+                print(self._y[ni])
+
+            results[i] = w[:len(ni), 0].dot(self._y[ni])
+            errors[i] = w[:, 0].dot(b[:, 0])
 
         if self.tqdm and not self.debug: 
             batches.close()
