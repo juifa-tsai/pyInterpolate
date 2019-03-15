@@ -261,12 +261,14 @@ class kriging_ordinary(VAR):
         for nd, ni, i in zip(neighbor_dst, neighbor_idx, batches):
             if self.tqdm and not self.debug:
                 batches.set_description(">> ")
-            if len(ni) == 0: 
+
+            ni = NP.atleast_1d(ni)
+            nd = NP.atleast_1d(nd)
+            if len(NP.atleast_id(ni)) == 0: 
                 continue 
            
             #### Selection and get distance
             if n_neighbor is None and self._algorithm == 'kdtree':
-                ni = NP.atleast_1d(ni)
                 nd = cdist( NP.atleast_2d(X[i, :]), self._X.data[ni], metric=self.distance_type )[0, :] # output [[500, 30, ....]]
             else:
                 #### Select with searching radius
