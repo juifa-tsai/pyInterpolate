@@ -264,7 +264,7 @@ class kriging_ordinary(VAR):
 
             ni = NP.atleast_1d(ni)
             nd = NP.atleast_1d(nd)
-            if len(NP.atleast_id(ni)) == 0: 
+            if len(ni) == 0: 
                 continue 
            
             #### Selection and get distance
