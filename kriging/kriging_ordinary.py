@@ -172,7 +172,7 @@ class kriging_ordinary(VAR):
         else:
             self.n_features = NP.shape(X)[1]
         
-        if not show or to is not None:
+        if show or to is not None:
             self._variogram.plot(to=to, transparent=transparent, show=show)
 
     def variogram(self):
