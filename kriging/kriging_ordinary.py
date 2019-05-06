@@ -120,7 +120,7 @@ class kriging_ordinary(VAR):
         else:
             self.fit(self._X, self._y, to=to, transparent=transparent, show=show)
 
-    def fit(self, X, y, to=None, transparent=True, show=False):
+    def fit(self, X, y, to=None, update_variogram=True, transparent=True, show=False):
         '''
         [DESCRIPTION]
             Store the data with KDTree or original data structure, and fit the variogram model with set parameters. 
@@ -138,7 +138,7 @@ class kriging_ordinary(VAR):
         if len(X) != len(y):
             print(">> [ERROR] different size %di, %d"%(len(X), len(y)))
             raise
-        if self._variogram is None:
+        if update_variogram or self._variogram is None :
             print('>> [INFO] creating variogram....')
             self._variogram = VAR(lag_range=self.lag_range, 
                                   lag_max=self.lag_max, 
