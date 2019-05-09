@@ -1,13 +1,13 @@
 import sys
 import numpy as NP
-import matplotlib
+#import matplotlib
 import matplotlib.pyplot as PLT
 from scipy.spatial.distance import cdist
 from scipy.optimize import least_squares
 from tqdm import tqdm as TQDM
 from .distribution import *
 from .utility import *
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 
 class variogram:
     def __init__(self, lag_range=None, lag_max=NP.inf, distance_type='euclidean', model='poly1', model_params=None, model_paramsbound=None, n_jobs=1, good_lowbin_fit=False, tqdm=False, debug=False):
