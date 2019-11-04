@@ -4,6 +4,7 @@ import matplotlib.pyplot as PLT
 import rasterio as RAST
 from rasterio.transform import from_origin
 from tqdm import tqdm as TQDM
+from scipy import optimize as OPT
 from scipy.spatial import cKDTree
 from scipy.spatial.distance import cdist
 from .variogram import variogram as VAR
@@ -240,6 +241,7 @@ class kriging_ordinary(VAR):
                 neighbor_dst, neighbor_idx = self._X.query(X, k=n_neighbor, p = 1 if self.distance_type == 'cityblock' else 2 )
             else:
                 neighbor_idx = self._X.query_ball_point(X, r=radius, p = 1 if self.distance_type == 'cityblock' else 2 )
+                # create instance, fill late in batch
                 neighbor_dst = NP.zeros((len(neighbor_idx), 1))
         else:
             neighbor_dst, neighbor_idx = get_neighors_brutal( X, self._X, k=n_neighbor, distance=self.distance_type, n_jobs=self.n_jobs, tqdm=self.tqdm)
@@ -305,8 +307,8 @@ class kriging_ordinary(VAR):
                 print(">>      y, observe value: ")
                 print(self._y[ni])
 
-            results[i] = w[:len(ni), 0].dot(self._y[ni])
-            errors[i] = w[:, 0].dot(b[:, 0])
+            results[i] = w[:len(ni)].dot(self._y[ni])
+            errors[i] = NP.sqrt(w[:len(ni)].dot(b[:len(ni)]))
 
         if self.tqdm and not self.debug: 
             batches.close()
@@ -359,12 +361,11 @@ class kriging_ordinary(VAR):
         else:
             D = cdist(self._X[neighbor_idxs], self._X[neighbor_idxs], metric=self.distance_type)
         a[:n, :n] = self._variogram.predict(D)
-        a[:, n] = 1
-        a[n, :] = 1
-        a[n, n] = 0
+        a[:n, n] = 1
+        a[n, :n] = 1
     
         ## Fill vector b
-        b[:-1, 0] = self._variogram.predict(neighbor_dist)
+        b[:n, 0] = self._variogram.predict(neighbor_dist)
     
         ## set self-varinace is zero if not using Nugget
         if not use_nugget:
@@ -378,7 +379,8 @@ class kriging_ordinary(VAR):
             print(">>      Turn on using Nugget for the diagonal of kriging matrix") 
     
         ## Get weights
-        w = scipy.linalg.solve(a, b)
+        #w = scipy.linalg.solve(a, b)
+        w = OPT.nnls(a, b)[0] # non-negative solution
     
         return a, b, w
 
