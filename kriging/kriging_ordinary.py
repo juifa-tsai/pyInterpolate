@@ -286,8 +286,8 @@ class kriging_ordinary(VAR):
             a, b, w = self.get_kriging( ni, nd, use_nugget)
 
             #### Drop negative weight and re-compute
-            while len(ni) > 0 and len(NP.where(w[:len(ni), 0] < 0.)[0]) > 0:
-                selected = NP.where(w[:len(ni), 0] >= 0.)[0]
+            while len(ni) > 0 and len(NP.where(w[:len(ni)] < 0.)[0]) > 0:
+                selected = NP.where(w[:len(ni)] >= 0.)[0]
                 ni = ni[selected]
                 nd = nd[selected]
                 a, b, w = self.get_kriging( ni, nd, use_nugget)
@@ -379,9 +379,9 @@ class kriging_ordinary(VAR):
             print(">>      Turn on using Nugget for the diagonal of kriging matrix") 
     
         ## Get weights
+        b = b.flatten()
         #w = scipy.linalg.solve(a, b)
         w = OPT.nnls(a, b)[0] # non-negative solution
-    
         return a, b, w
 
 
