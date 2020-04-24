@@ -99,6 +99,7 @@ def variogram_circular(pars, d):
     return NP.piecewise(d, [d <= range_, d > range_],
                         [lambda x: psill * (1 - 2/NP.pi/NP.cos(x/range_) + NP.sqrt(1-(x/range_)**2)) + nugget, psill + nugget])
 
+
 distributions = { 'poly1':variogram_poly1, 
                   'power':variogram_power,
                   'gaussian':variogram_gaussian,
