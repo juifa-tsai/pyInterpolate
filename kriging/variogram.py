@@ -4,6 +4,7 @@ import matplotlib
 import matplotlib.pyplot as PLT
 from scipy.spatial.distance import cdist
 from scipy.optimize import least_squares
+from scipy.optimize import curve_fit
 from tqdm import tqdm as TQDM
 from .distribution import *
 from .utility import *
@@ -91,7 +92,7 @@ class variogram:
         else:
             return self.params
 
-    def fit(self, X, y):
+    def fit(self, X, y, fit_method='curve_fit'):
         X = NP.atleast_1d(X)
         y = NP.atleast_1d(y)
         if len(X) != len(y):
@@ -168,17 +169,23 @@ class variogram:
             self.variances = self.variances[~NP.isnan(self.variances)]
         
         ## Fit with self.model
-        print('>> [INFO] Fitting variogram....')
-        self.update_fit()
+        print('>> [INFO] Fitting variogram with %s....'%fit_method)
+        self.update_fit(fit_method=fit_method)
 
-    def update_fit(self, model=None):
+    def update_fit(self, model=None, fit_method='curve_fit'):
         if model is not None:
             self.update_model(model)
         ## Initialized parameters for fitting
         self.update_params()
         ## Fit with least square
-        self.results = least_squares( fun=self._cost, x0=self.params, bounds=self.params_bound, loss='soft_l1') 
-        self.params = self.results.x
+        if fit_method == 'least_square':
+            self.results = least_squares( fun=self._cost, x0=self.params, bounds=self.params_bound, loss='soft_l1')
+            self.params = self.results.x
+        elif fit_method == 'curve_fit':
+            def __model(d, *params):
+                return self.model(params, d)
+            self.results = curve_fit(__model, self.lags, self.variances, p0=self.params, bounds=self.params_bound)
+            self.params = self.results[0]
 
     def predict(self, X):
         '''
